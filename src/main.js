@@ -286,57 +286,68 @@ async function downloadInvoicePDF() {
 
     const doc = new jsPDF();
 
-    // Title
-    doc.setFontSize(22);
+    // Company Name (Large at top)
+    doc.setFontSize(24);
     doc.setFont(undefined, 'bold');
-    doc.text('INVOICE', 105, 20, { align: 'center' });
+    doc.text('SK ENTERPRISE', 105, 20, { align: 'center' });
 
-    // Business Name
-    doc.setFontSize(16);
-    doc.text('SK Calculator', 105, 30, { align: 'center' });
+    // Invoice Title
+    doc.setFontSize(18);
+    doc.text('INVOICE', 105, 32, { align: 'center' });
 
-    // Invoice Details
-    doc.setFontSize(10);
+    // Separator line
+    doc.setLineWidth(0.5);
+    doc.line(20, 38, 190, 38);
+
+    // Invoice Details (Left side)
+    doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
-    doc.text(`Customer: ${customerName}`, 20, 45);
-    doc.text(`Date: ${invoiceDate || new Date().toISOString().split('T')[0]}`, 20, 52);
+    doc.text(`Customer: ${customerName}`, 20, 48);
+    doc.text(`Date: ${invoiceDate || new Date().toISOString().split('T')[0]}`, 20, 55);
 
-    // Table Header
-    const startY = 65;
+    // Table Header with background
+    const startY = 70;
+    doc.setFillColor(240, 240, 240);
+    doc.rect(20, startY - 6, 170, 8, 'F');
+
     doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
-    doc.text('Item', 20, startY);
-    doc.text('Price', 100, startY);
-    doc.text('Qty', 135, startY);
-    doc.text('Total', 165, startY);
-
-    // Draw line under header
-    doc.line(20, startY + 2, 190, startY + 2);
+    doc.text('Item', 25, startY);
+    doc.text('Price', 105, startY, { align: 'right' });
+    doc.text('Qty', 130, startY, { align: 'center' });
+    doc.text('Total', 185, startY, { align: 'right' });
 
     // Table Rows
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
     let yPosition = startY + 10;
 
-    invoiceItems.forEach((invoiceItem) => {
+    invoiceItems.forEach((invoiceItem, index) => {
       const item = items.find(i => i.id == invoiceItem.itemId);
       if (item) {
         const itemTotal = invoiceItem.quantity * parseFloat(item.price);
 
-        doc.text(item.name, 20, yPosition);
-        doc.text(`₹${parseFloat(item.price).toFixed(2)}`, 100, yPosition);
-        doc.text(invoiceItem.quantity.toString(), 135, yPosition);
-        doc.text(`₹${itemTotal.toFixed(2)}`, 165, yPosition);
+        // Alternate row background
+        if (index % 2 === 0) {
+          doc.setFillColor(250, 250, 250);
+          doc.rect(20, yPosition - 5, 170, 7, 'F');
+        }
 
-        yPosition += 8;
+        doc.text(item.name, 25, yPosition);
+        doc.text(`₹${parseFloat(item.price).toFixed(2)}`, 105, yPosition, { align: 'right' });
+        doc.text(invoiceItem.quantity.toString(), 130, yPosition, { align: 'center' });
+        doc.text(`₹${itemTotal.toFixed(2)}`, 185, yPosition, { align: 'right' });
+
+        yPosition += 7;
       }
     });
 
     // Total line
-    doc.line(20, yPosition, 190, yPosition);
+    doc.setLineWidth(0.5);
+    doc.line(20, yPosition + 2, 190, yPosition + 2);
     yPosition += 10;
 
-    // Total Amount
+    // Total Amount (Right aligned)
     const total = invoiceItems.reduce((sum, invoiceItem) => {
       const item = items.find(i => i.id == invoiceItem.itemId);
       return item ? sum + (invoiceItem.quantity * parseFloat(item.price)) : sum;
@@ -344,11 +355,11 @@ async function downloadInvoicePDF() {
 
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.text('Total:', 135, yPosition);
-    doc.text(`₹${total.toFixed(2)}`, 165, yPosition);
+    doc.text('TOTAL:', 130, yPosition);
+    doc.text(`₹${total.toFixed(2)}`, 185, yPosition, { align: 'right' });
 
     // Footer
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setFont(undefined, 'italic');
     doc.text('Thank you for your business!', 105, yPosition + 20, { align: 'center' });
 
