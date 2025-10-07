@@ -3,92 +3,195 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SK Calculator - Invoice Builder</title>
+  <title>SK Enterprise - Invoice System</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>SK Calculator</h1>
-      <p class="subtitle">Invoice Builder</p>
+  <div class="app">
+    <!-- Header -->
+    <header class="app-header">
+      <h1>SK ENTERPRISE</h1>
+      <p class="subtitle">Fabric Invoice Management</p>
     </header>
 
-    <!-- Item Management Section -->
-    <section class="card">
-      <h2>Manage Items</h2>
-      <form id="add-item-form" class="form">
-        <div class="form-group">
-          <input
-            type="text"
-            id="item-name"
-            placeholder="Item name (e.g., Fabric, Lace)"
-            required
-            autocomplete="off"
-          >
-        </div>
-        <div class="form-group">
-          <input
-            type="number"
-            id="item-price"
-            placeholder="Price"
-            step="0.01"
-            min="0"
-            required
-            autocomplete="off"
-          >
-        </div>
-        <button type="submit" class="btn btn-primary">Add Item</button>
-      </form>
+    <!-- Navigation -->
+    <nav class="main-nav">
+      <button class="nav-btn active" data-page="invoice">Invoice</button>
+      <button class="nav-btn" data-page="fabrics">Fabrics</button>
+      <button class="nav-btn" data-page="brooches">Brooches</button>
+      <button class="nav-btn" data-page="width-rules">Width Rules</button>
+    </nav>
 
-      <div id="items-list" class="items-list">
-        <div class="loading">Loading items...</div>
+    <!-- Main Container -->
+    <div class="container">
+      <!-- Invoice Page -->
+      <div class="page active" id="invoice-page">
+        <section class="card">
+          <h2>Create Invoice</h2>
+
+          <!-- Customer Details -->
+          <div class="form-group">
+            <label>Customer Name</label>
+            <input type="text" id="customer-name" placeholder="Enter customer name" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label>Invoice Date</label>
+            <input type="date" id="invoice-date" autocomplete="off">
+          </div>
+
+          <hr class="separator">
+
+          <!-- Add Fabric Item -->
+          <h3>Add Fabric Item</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fabric Type</label>
+              <select id="fabric-type-select">
+                <option value="">Select fabric type</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Width</label>
+              <select id="fabric-width-select">
+                <option value="">Select width</option>
+                <option value="60">60</option>
+                <option value="44">44</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sets (even numbers)</label>
+              <select id="fabric-sets-select" disabled>
+                <option value="">Select width first</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Meters (auto-calculated)</label>
+              <input type="text" id="fabric-meters" disabled readonly placeholder="Auto">
+            </div>
+          </div>
+
+          <button id="add-fabric-btn" class="btn btn-primary">Add Fabric to Invoice</button>
+
+          <hr class="separator">
+
+          <!-- Add Brooch Item -->
+          <h3>Add Brooch Item</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Brooch Type</label>
+              <select id="brooch-type-select">
+                <option value="">Select brooch type</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Quantity</label>
+              <input type="number" id="brooch-quantity" min="1" value="1">
+            </div>
+          </div>
+          <button id="add-brooch-btn" class="btn btn-primary">Add Brooch to Invoice</button>
+
+          <hr class="separator">
+
+          <!-- Invoice Items List -->
+          <h3>Invoice Items</h3>
+          <div id="invoice-items-list" class="invoice-items-list">
+            <div class="empty-state">No items added yet</div>
+          </div>
+
+          <!-- Total and Download -->
+          <div class="total-section">
+            <div class="total-row">
+              <span class="total-label">Total:</span>
+              <span class="total-amount" id="invoice-total">₹0.00</span>
+            </div>
+            <button id="download-invoice-btn" class="btn btn-success">Download PDF Invoice</button>
+          </div>
+        </section>
       </div>
-    </section>
 
-    <!-- Invoice Builder Section -->
-    <section class="card">
-      <h2>Build Invoice</h2>
+      <!-- Fabric Types Management Page -->
+      <div class="page" id="fabrics-page">
+        <section class="card">
+          <h2>Manage Fabric Types</h2>
 
-      <!-- Invoice Details -->
-      <div class="invoice-details">
-        <div class="form-group">
-          <input
-            type="text"
-            id="customer-name"
-            placeholder="Customer Name"
-            autocomplete="off"
-          >
-        </div>
-        <div class="form-group">
-          <input
-            type="date"
-            id="invoice-date"
-            autocomplete="off"
-          >
-        </div>
+          <form id="fabric-form" class="form">
+            <div class="form-group">
+              <label>Fabric Name</label>
+              <input type="text" id="fabric-name" placeholder="e.g., Cotton, Silk" required>
+            </div>
+            <div class="form-group">
+              <label>Price per Meter (₹)</label>
+              <input type="number" id="fabric-price" placeholder="0.00" step="0.01" min="0" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Fabric Type</button>
+          </form>
+
+          <div id="fabric-list" class="items-list">
+            <div class="loading">Loading...</div>
+          </div>
+        </section>
       </div>
 
-      <!-- Add Item to Invoice -->
-      <div class="add-invoice-item">
-        <select id="item-select" class="item-select">
-          <option value="">Select an item to add</option>
-        </select>
-        <button id="add-to-invoice-btn" class="btn btn-secondary">Add to Invoice</button>
+      <!-- Brooch Types Management Page -->
+      <div class="page" id="brooches-page">
+        <section class="card">
+          <h2>Manage Brooch Types</h2>
+
+          <form id="brooch-form" class="form">
+            <div class="form-group">
+              <label>Brooch Name</label>
+              <input type="text" id="brooch-name" placeholder="e.g., Small Brooch" required>
+            </div>
+            <div class="form-group">
+              <label>Price (₹)</label>
+              <input type="number" id="brooch-price" placeholder="0.00" step="0.01" min="0" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Brooch Type</button>
+          </form>
+
+          <div id="brooch-list" class="items-list">
+            <div class="loading">Loading...</div>
+          </div>
+        </section>
       </div>
 
-      <!-- Invoice Items List -->
-      <div id="invoice-items" class="invoice-items">
-        <div class="empty-state">Add items to the invoice using the dropdown above</div>
-      </div>
+      <!-- Width Rules Management Page -->
+      <div class="page" id="width-rules-page">
+        <section class="card">
+          <h2>Manage Width Rules</h2>
+          <p class="help-text">Define how many meters are needed for different widths and sets</p>
 
-      <div class="total-section">
-        <div class="total-row">
-          <span class="total-label">Total:</span>
-          <span class="total-amount" id="total-amount">₹0.00</span>
-        </div>
-        <button id="download-pdf-btn" class="btn btn-primary" style="margin-top: 1rem;">Download PDF</button>
+          <form id="width-rule-form" class="form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Width</label>
+                <select id="width-rule-width" required>
+                  <option value="">Select width</option>
+                  <option value="60">60</option>
+                  <option value="44">44</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Sets (even number)</label>
+                <input type="number" id="width-rule-sets" placeholder="2" step="2" min="2" required>
+              </div>
+              <div class="form-group">
+                <label>Meters</label>
+                <input type="number" id="width-rule-meters" placeholder="0.0" step="0.1" min="0" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Width Rule</button>
+          </form>
+
+          <div id="width-rule-list" class="items-list">
+            <div class="loading">Loading...</div>
+          </div>
+        </section>
       </div>
-    </section>
+    </div>
 
     <!-- Status Messages -->
     <div id="status-message" class="status-message"></div>

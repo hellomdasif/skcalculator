@@ -1,413 +1,481 @@
 // API Configuration
 const API_BASE = import.meta.env.DEV ? '/.netlify/functions' : '/api';
 
-// State
-let items = [];
-let invoiceItems = []; // Array of {itemId, quantity} for selected invoice items
-
-// DOM Elements
-const addItemForm = document.getElementById('add-item-form');
-const itemNameInput = document.getElementById('item-name');
-const itemPriceInput = document.getElementById('item-price');
-const itemsList = document.getElementById('items-list');
-const itemSelect = document.getElementById('item-select');
-const addToInvoiceBtn = document.getElementById('add-to-invoice-btn');
-const invoiceItemsContainer = document.getElementById('invoice-items');
-const totalAmountElement = document.getElementById('total-amount');
-const statusMessage = document.getElementById('status-message');
-const customerNameInput = document.getElementById('customer-name');
-const invoiceDateInput = document.getElementById('invoice-date');
-const downloadPdfBtn = document.getElementById('download-pdf-btn');
+// Global State
+const state = {
+  fabricTypes: [],
+  broochTypes: [],
+  widthRules: [],
+  invoiceItems: [],
+  currentPage: 'invoice'
+};
 
 // Utility Functions
 function showStatus(message, type = 'success') {
-  statusMessage.textContent = message;
-  statusMessage.className = `status-message ${type} show`;
-
-  setTimeout(() => {
-    statusMessage.classList.remove('show');
-  }, 3000);
+  const statusEl = document.getElementById('status-message');
+  statusEl.textContent = message;
+  statusEl.className = `status-message ${type} show`;
+  setTimeout(() => statusEl.classList.remove('show'), 3000);
 }
 
 function formatCurrency(amount) {
   return `₹${parseFloat(amount).toFixed(2)}`;
 }
 
-// API Functions
-async function fetchItems() {
-  try {
-    const response = await fetch(`${API_BASE}/get-items`);
-    const data = await response.json();
+// Navigation
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const page = btn.dataset.page;
+    switchPage(page);
+  });
+});
 
+function switchPage(pageName) {
+  // Update nav buttons
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-page="${pageName}"]`).classList.add('active');
+  
+  // Update pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`${pageName}-page`).classList.add('active');
+  
+  state.currentPage = pageName;
+}
+
+// ==================== FABRIC TYPES ====================
+async function loadFabricTypes() {
+  try {
+    const res = await fetch(`${API_BASE}/fabric-types`);
+    const data = await res.json();
     if (data.success) {
-      items = data.items;
-      renderItems();
-      populateItemSelect();
-      renderInvoiceItems();
-    } else {
-      showStatus('Failed to fetch items: ' + data.error, 'error');
+      state.fabricTypes = data.data;
+      renderFabricTypes();
+      populateFabricSelect();
     }
   } catch (error) {
-    console.error('Error fetching items:', error);
-    showStatus('Error loading items. Check console.', 'error');
+    console.error('Error loading fabric types:', error);
+    showStatus('Error loading fabric types', 'error');
   }
 }
 
-async function addItem(name, price) {
-  try {
-    const response = await fetch(`${API_BASE}/add-item`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ name, price })
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      showStatus('Item added successfully!', 'success');
-      await fetchItems();
-      itemNameInput.value = '';
-      itemPriceInput.value = '';
-      itemNameInput.focus();
-    } else {
-      showStatus('Failed to add item: ' + data.error, 'error');
-    }
-  } catch (error) {
-    console.error('Error adding item:', error);
-    showStatus('Error adding item. Check console.', 'error');
-  }
-}
-
-async function deleteItem(id) {
-  if (!confirm('Are you sure you want to delete this item?')) {
+function renderFabricTypes() {
+  const list = document.getElementById('fabric-list');
+  if (state.fabricTypes.length === 0) {
+    list.innerHTML = '<div class="empty-state">No fabric types yet</div>';
     return;
   }
-
-  try {
-    const response = await fetch(`${API_BASE}/delete-item`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ id })
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      showStatus('Item deleted successfully!', 'success');
-      // Remove from invoice if present
-      invoiceItems = invoiceItems.filter(item => item.itemId != id);
-      await fetchItems();
-    } else {
-      showStatus('Failed to delete item: ' + data.error, 'error');
-    }
-  } catch (error) {
-    console.error('Error deleting item:', error);
-    showStatus('Error deleting item. Check console.', 'error');
-  }
-}
-
-// Render Functions
-function renderItems() {
-  if (items.length === 0) {
-    itemsList.innerHTML = '<div class="empty-state">No items yet. Add your first item above.</div>';
-    return;
-  }
-
-  itemsList.innerHTML = items.map(item => `
+  
+  list.innerHTML = state.fabricTypes.map(f => `
     <div class="item-card">
       <div class="item-info">
-        <div class="item-name">${escapeHtml(item.name)}</div>
-        <div class="item-price">${formatCurrency(item.price)}</div>
+        <div class="item-name">${f.name}</div>
+        <div class="item-price">${formatCurrency(f.price_per_meter)}/meter</div>
       </div>
-      <button class="btn btn-danger" onclick="deleteItem(${item.id})">Delete</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteFabricType(${f.id})">Delete</button>
     </div>
   `).join('');
 }
 
-// Populate item dropdown
-function populateItemSelect() {
-  if (items.length === 0) {
-    itemSelect.innerHTML = '<option value="">No items available</option>';
-    addToInvoiceBtn.disabled = true;
-    return;
-  }
-
-  itemSelect.innerHTML = '<option value="">Select an item to add</option>' +
-    items.map(item =>
-      `<option value="${item.id}">${escapeHtml(item.name)} - ${formatCurrency(item.price)}</option>`
+function populateFabricSelect() {
+  const select = document.getElementById('fabric-type-select');
+  select.innerHTML = '<option value="">Select fabric type</option>' +
+    state.fabricTypes.map(f => 
+      `<option value="${f.id}" data-price="${f.price_per_meter}">${f.name} - ${formatCurrency(f.price_per_meter)}/m</option>`
     ).join('');
-  addToInvoiceBtn.disabled = false;
 }
 
-// Add item to invoice
-function addItemToInvoice() {
-  const selectedItemId = itemSelect.value;
-
-  if (!selectedItemId) {
-    showStatus('Please select an item', 'error');
-    return;
-  }
-
-  // Check if item already in invoice
-  const existingItem = invoiceItems.find(item => item.itemId == selectedItemId);
-
-  if (existingItem) {
-    showStatus('Item already in invoice', 'error');
-    return;
-  }
-
-  // Add item with quantity 1
-  invoiceItems.push({ itemId: selectedItemId, quantity: 1 });
-
-  renderInvoiceItems();
-  itemSelect.value = ''; // Reset selection
-}
-
-// Remove item from invoice
-function removeItemFromInvoice(itemId) {
-  invoiceItems = invoiceItems.filter(item => item.itemId != itemId);
-  renderInvoiceItems();
-}
-
-// Render invoice items
-function renderInvoiceItems() {
-  if (invoiceItems.length === 0) {
-    invoiceItemsContainer.innerHTML = '<div class="empty-state">Add items to the invoice using the dropdown above</div>';
-    calculateTotal();
-    return;
-  }
-
-  invoiceItemsContainer.innerHTML = invoiceItems.map(invoiceItem => {
-    const item = items.find(i => i.id == invoiceItem.itemId);
-    if (!item) return '';
-
-    const itemTotal = invoiceItem.quantity * parseFloat(item.price);
-
-    return `
-      <div class="invoice-item" data-invoice-item-id="${item.id}">
-        <div class="invoice-item-name">${escapeHtml(item.name)}</div>
-        <div class="invoice-item-price">${formatCurrency(item.price)}</div>
-        <input
-          type="number"
-          class="quantity-input"
-          min="1"
-          step="1"
-          value="${invoiceItem.quantity}"
-          data-item-id="${item.id}"
-          placeholder="Qty"
-        >
-        <div class="invoice-item-total">${formatCurrency(itemTotal)}</div>
-        <button class="btn btn-remove" onclick="removeItemFromInvoice(${item.id})">Remove</button>
-      </div>
-    `;
-  }).join('');
-
-  // Add event listeners to quantity inputs
-  document.querySelectorAll('.quantity-input').forEach(input => {
-    input.addEventListener('input', handleQuantityChange);
-  });
-
-  calculateTotal();
-}
-
-// Handle quantity change
-function handleQuantityChange(event) {
-  const itemId = event.target.dataset.itemId;
-  const quantity = parseInt(event.target.value) || 1;
-
-  if (quantity < 1) {
-    event.target.value = 1;
-    return;
-  }
-
-  // Update quantity in invoiceItems
-  const invoiceItem = invoiceItems.find(item => item.itemId == itemId);
-  if (invoiceItem) {
-    invoiceItem.quantity = quantity;
-    updateItemTotal(itemId, quantity);
-    calculateTotal();
-  }
-}
-
-// Update individual item total
-function updateItemTotal(itemId, quantity) {
-  const item = items.find(i => i.id == itemId);
-  if (!item) return;
-
-  const total = quantity * parseFloat(item.price);
-  const itemElement = document.querySelector(`[data-invoice-item-id="${itemId}"]`);
-  if (itemElement) {
-    const totalElement = itemElement.querySelector('.invoice-item-total');
-    totalElement.textContent = formatCurrency(total);
-  }
-}
-
-// Calculate total
-function calculateTotal() {
-  const total = invoiceItems.reduce((sum, invoiceItem) => {
-    const item = items.find(i => i.id == invoiceItem.itemId);
-    if (item) {
-      return sum + (invoiceItem.quantity * parseFloat(item.price));
+document.getElementById('fabric-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('fabric-name').value.trim();
+  const price = parseFloat(document.getElementById('fabric-price').value);
+  
+  try {
+    const res = await fetch(`${API_BASE}/fabric-types`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, price_per_meter: price })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showStatus('Fabric type added!', 'success');
+      document.getElementById('fabric-form').reset();
+      await loadFabricTypes();
     }
-    return sum;
-  }, 0);
+  } catch (error) {
+    showStatus('Error adding fabric type', 'error');
+  }
+});
 
-  totalAmountElement.textContent = formatCurrency(total);
+window.deleteFabricType = async (id) => {
+  if (!confirm('Delete this fabric type?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/fabric-types`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if ((await res.json()).success) {
+      showStatus('Fabric type deleted', 'success');
+      await loadFabricTypes();
+    }
+  } catch (error) {
+    showStatus('Error deleting fabric type', 'error');
+  }
+};
+
+// ==================== BROOCH TYPES ====================
+async function loadBroochTypes() {
+  try {
+    const res = await fetch(`${API_BASE}/brooch-types`);
+    const data = await res.json();
+    if (data.success) {
+      state.broochTypes = data.data;
+      renderBroochTypes();
+      populateBroochSelect();
+    }
+  } catch (error) {
+    console.error('Error loading brooch types:', error);
+  }
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function renderBroochTypes() {
+  const list = document.getElementById('brooch-list');
+  if (state.broochTypes.length === 0) {
+    list.innerHTML = '<div class="empty-state">No brooch types yet</div>';
+    return;
+  }
+  
+  list.innerHTML = state.broochTypes.map(b => `
+    <div class="item-card">
+      <div class="item-info">
+        <div class="item-name">${b.name}</div>
+        <div class="item-price">${formatCurrency(b.price)}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteBroochType(${b.id})">Delete</button>
+    </div>
+  `).join('');
 }
 
-// PDF Download Function
-async function downloadInvoicePDF() {
-  const customerName = customerNameInput.value.trim();
-  const invoiceDate = invoiceDateInput.value;
+function populateBroochSelect() {
+  const select = document.getElementById('brooch-type-select');
+  select.innerHTML = '<option value="">Select brooch type</option>' +
+    state.broochTypes.map(b => 
+      `<option value="${b.id}" data-price="${b.price}">${b.name} - ${formatCurrency(b.price)}</option>`
+    ).join('');
+}
 
+document.getElementById('brooch-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('brooch-name').value.trim();
+  const price = parseFloat(document.getElementById('brooch-price').value);
+  
+  try {
+    const res = await fetch(`${API_BASE}/brooch-types`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, price })
+    });
+    if ((await res.json()).success) {
+      showStatus('Brooch type added!', 'success');
+      document.getElementById('brooch-form').reset();
+      await loadBroochTypes();
+    }
+  } catch (error) {
+    showStatus('Error adding brooch type', 'error');
+  }
+});
+
+window.deleteBroochType = async (id) => {
+  if (!confirm('Delete this brooch type?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/brooch-types`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if ((await res.json()).success) {
+      showStatus('Brooch type deleted', 'success');
+      await loadBroochTypes();
+    }
+  } catch (error) {
+    showStatus('Error deleting brooch type', 'error');
+  }
+};
+
+// ==================== WIDTH RULES ====================
+async function loadWidthRules() {
+  try {
+    const res = await fetch(`${API_BASE}/width-rules`);
+    const data = await res.json();
+    if (data.success) {
+      state.widthRules = data.data;
+      renderWidthRules();
+    }
+  } catch (error) {
+    console.error('Error loading width rules:', error);
+  }
+}
+
+function renderWidthRules() {
+  const list = document.getElementById('width-rule-list');
+  if (state.widthRules.length === 0) {
+    list.innerHTML = '<div class="empty-state">No width rules yet</div>';
+    return;
+  }
+  
+  list.innerHTML = state.widthRules.map(r => `
+    <div class="item-card">
+      <div class="item-info">
+        <div class="item-name">Width ${r.width} | ${r.sets} Sets</div>
+        <div class="item-price">${r.meters} meters</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteWidthRule(${r.id})">Delete</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('width-rule-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const width = parseInt(document.getElementById('width-rule-width').value);
+  const sets = parseInt(document.getElementById('width-rule-sets').value);
+  const meters = parseFloat(document.getElementById('width-rule-meters').value);
+  
+  if (sets % 2 !== 0) {
+    showStatus('Sets must be even number', 'error');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_BASE}/width-rules`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ width, sets, meters })
+    });
+    if ((await res.json()).success) {
+      showStatus('Width rule added!', 'success');
+      document.getElementById('width-rule-form').reset();
+      await loadWidthRules();
+    }
+  } catch (error) {
+    showStatus('Error adding width rule', 'error');
+  }
+});
+
+window.deleteWidthRule = async (id) => {
+  if (!confirm('Delete this width rule?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/width-rules`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if ((await res.json()).success) {
+      showStatus('Width rule deleted', 'success');
+      await loadWidthRules();
+    }
+  } catch (error) {
+    showStatus('Error deleting width rule', 'error');
+  }
+};
+
+// ==================== INVOICE ====================
+const widthSelect = document.getElementById('fabric-width-select');
+const setsSelect = document.getElementById('fabric-sets-select');
+const metersInput = document.getElementById('fabric-meters');
+
+widthSelect.addEventListener('change', () => {
+  const width = widthSelect.value;
+  if (!width) {
+    setsSelect.disabled = true;
+    setsSelect.innerHTML = '<option value="">Select width first</option>';
+    metersInput.value = '';
+    return;
+  }
+  
+  const rulesForWidth = state.widthRules.filter(r => r.width == width);
+  setsSelect.disabled = false;
+  setsSelect.innerHTML = '<option value="">Select sets</option>' +
+    rulesForWidth.map(r => `<option value="${r.sets}" data-meters="${r.meters}">${r.sets} sets</option>`).join('');
+  metersInput.value = '';
+});
+
+setsSelect.addEventListener('change', () => {
+  const selectedOption = setsSelect.options[setsSelect.selectedIndex];
+  if (selectedOption && selectedOption.dataset.meters) {
+    metersInput.value = selectedOption.dataset.meters;
+  } else {
+    metersInput.value = '';
+  }
+});
+
+document.getElementById('add-fabric-btn').addEventListener('click', () => {
+  const fabricId = document.getElementById('fabric-type-select').value;
+  const width = widthSelect.value;
+  const sets = setsSelect.value;
+  const meters = metersInput.value;
+  
+  if (!fabricId || !width || !sets || !meters) {
+    showStatus('Please fill all fabric fields', 'error');
+    return;
+  }
+  
+  const fabric = state.fabricTypes.find(f => f.id == fabricId);
+  const price = fabric.price_per_meter * parseFloat(meters);
+  
+  state.invoiceItems.push({
+    type: 'fabric',
+    name: `${fabric.name} (W:${width}, ${sets} sets, ${meters}m)`,
+    price: price,
+    quantity: 1,
+    total: price
+  });
+  
+  renderInvoiceItems();
+  showStatus('Fabric added to invoice', 'success');
+});
+
+document.getElementById('add-brooch-btn').addEventListener('click', () => {
+  const broochId = document.getElementById('brooch-type-select').value;
+  const quantity = parseInt(document.getElementById('brooch-quantity').value);
+  
+  if (!broochId || !quantity) {
+    showStatus('Please select brooch and quantity', 'error');
+    return;
+  }
+  
+  const brooch = state.broochTypes.find(b => b.id == broochId);
+  const total = brooch.price * quantity;
+  
+  state.invoiceItems.push({
+    type: 'brooch',
+    name: brooch.name,
+    price: brooch.price,
+    quantity: quantity,
+    total: total
+  });
+  
+  renderInvoiceItems();
+  showStatus('Brooch added to invoice', 'success');
+});
+
+function renderInvoiceItems() {
+  const list = document.getElementById('invoice-items-list');
+  if (state.invoiceItems.length === 0) {
+    list.innerHTML = '<div class="empty-state">No items added yet</div>';
+    document.getElementById('invoice-total').textContent = '₹0.00';
+    return;
+  }
+  
+  list.innerHTML = state.invoiceItems.map((item, idx) => `
+    <div class="invoice-item-row">
+      <div class="invoice-item-details">
+        <div class="invoice-item-name">${item.name}</div>
+        <div class="invoice-item-meta">Qty: ${item.quantity} × ${formatCurrency(item.price)}</div>
+      </div>
+      <div class="invoice-item-total">${formatCurrency(item.total)}</div>
+      <button class="btn btn-danger btn-sm" onclick="removeInvoiceItem(${idx})">×</button>
+    </div>
+  `).join('');
+  
+  const total = state.invoiceItems.reduce((sum, item) => sum + item.total, 0);
+  document.getElementById('invoice-total').textContent = formatCurrency(total);
+}
+
+window.removeInvoiceItem = (idx) => {
+  state.invoiceItems.splice(idx, 1);
+  renderInvoiceItems();
+};
+
+// PDF Download
+document.getElementById('download-invoice-btn').addEventListener('click', async () => {
+  const customerName = document.getElementById('customer-name').value.trim();
+  const invoiceDate = document.getElementById('invoice-date').value;
+  
   if (!customerName) {
     showStatus('Please enter customer name', 'error');
     return;
   }
-
-  if (invoiceItems.length === 0) {
-    showStatus('Please add items to the invoice', 'error');
+  
+  if (state.invoiceItems.length === 0) {
+    showStatus('Please add items to invoice', 'error');
     return;
   }
-
+  
   try {
-    // Dynamically import jsPDF
     const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm');
-
     const doc = new jsPDF();
-
-    // Company Name (Large at top)
+    
     doc.setFontSize(24);
     doc.setFont(undefined, 'bold');
     doc.text('SK ENTERPRISE', 105, 20, { align: 'center' });
-
-    // Invoice Title
+    
     doc.setFontSize(18);
     doc.text('INVOICE', 105, 32, { align: 'center' });
-
-    // Separator line
+    
     doc.setLineWidth(0.5);
     doc.line(20, 38, 190, 38);
-
-    // Invoice Details (Left side)
+    
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
     doc.text(`Customer: ${customerName}`, 20, 48);
     doc.text(`Date: ${invoiceDate || new Date().toISOString().split('T')[0]}`, 20, 55);
-
-    // Table Header with background
+    
     const startY = 70;
     doc.setFillColor(240, 240, 240);
     doc.rect(20, startY - 6, 170, 8, 'F');
-
+    
     doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
     doc.text('Item', 25, startY);
-    doc.text('Price', 105, startY, { align: 'right' });
     doc.text('Qty', 130, startY, { align: 'center' });
     doc.text('Total', 185, startY, { align: 'right' });
-
-    // Table Rows
+    
     doc.setFont(undefined, 'normal');
     doc.setFontSize(10);
-    let yPosition = startY + 10;
-
-    invoiceItems.forEach((invoiceItem, index) => {
-      const item = items.find(i => i.id == invoiceItem.itemId);
-      if (item) {
-        const itemTotal = invoiceItem.quantity * parseFloat(item.price);
-
-        // Alternate row background
-        if (index % 2 === 0) {
-          doc.setFillColor(250, 250, 250);
-          doc.rect(20, yPosition - 5, 170, 7, 'F');
-        }
-
-        doc.text(item.name, 25, yPosition);
-        doc.text(`₹${parseFloat(item.price).toFixed(2)}`, 105, yPosition, { align: 'right' });
-        doc.text(invoiceItem.quantity.toString(), 130, yPosition, { align: 'center' });
-        doc.text(`₹${itemTotal.toFixed(2)}`, 185, yPosition, { align: 'right' });
-
-        yPosition += 7;
+    let yPos = startY + 10;
+    
+    state.invoiceItems.forEach((item, idx) => {
+      if (idx % 2 === 0) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(20, yPos - 5, 170, 7, 'F');
       }
+      doc.text(item.name, 25, yPos);
+      doc.text(item.quantity.toString(), 130, yPos, { align: 'center' });
+      doc.text(formatCurrency(item.total), 185, yPos, { align: 'right' });
+      yPos += 7;
     });
-
-    // Total line
+    
     doc.setLineWidth(0.5);
-    doc.line(20, yPosition + 2, 190, yPosition + 2);
-    yPosition += 10;
-
-    // Total Amount (Right aligned)
-    const total = invoiceItems.reduce((sum, invoiceItem) => {
-      const item = items.find(i => i.id == invoiceItem.itemId);
-      return item ? sum + (invoiceItem.quantity * parseFloat(item.price)) : sum;
-    }, 0);
-
+    doc.line(20, yPos + 2, 190, yPos + 2);
+    yPos += 10;
+    
+    const total = state.invoiceItems.reduce((sum, item) => sum + item.total, 0);
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.text('TOTAL:', 130, yPosition);
-    doc.text(`₹${total.toFixed(2)}`, 185, yPosition, { align: 'right' });
-
-    // Footer
+    doc.text('TOTAL:', 130, yPos);
+    doc.text(formatCurrency(total), 185, yPos, { align: 'right' });
+    
     doc.setFontSize(10);
     doc.setFont(undefined, 'italic');
-    doc.text('Thank you for your business!', 105, yPosition + 20, { align: 'center' });
-
-    // Save PDF
-    const fileName = `Invoice_${customerName.replace(/\s+/g, '_')}_${invoiceDate || new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
-
-    showStatus('Invoice PDF downloaded successfully!', 'success');
+    doc.text('Thank you for your business!', 105, yPos + 20, { align: 'center' });
+    
+    doc.save(`Invoice_${customerName.replace(/\s+/g, '_')}_${invoiceDate || new Date().toISOString().split('T')[0]}.pdf`);
+    showStatus('PDF downloaded!', 'success');
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    showStatus('Error generating PDF. Check console.', 'error');
+    console.error('PDF Error:', error);
+    showStatus('Error generating PDF', 'error');
   }
-}
-
-// Event Listeners
-addItemForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-
-  const name = itemNameInput.value.trim();
-  const price = parseFloat(itemPriceInput.value);
-
-  if (!name || !price || price <= 0) {
-    showStatus('Please enter valid name and price', 'error');
-    return;
-  }
-
-  await addItem(name, price);
 });
 
-// Set default date to today
-invoiceDateInput.valueAsDate = new Date();
+// Initialize
+document.getElementById('invoice-date').valueAsDate = new Date();
 
-// Add to invoice button
-addToInvoiceBtn.addEventListener('click', addItemToInvoice);
-
-// Download PDF button
-downloadPdfBtn.addEventListener('click', downloadInvoicePDF);
-
-// Make functions globally accessible for onclick handlers
-window.deleteItem = deleteItem;
-window.removeItemFromInvoice = removeItemFromInvoice;
-
-// Initialize App
 async function init() {
-  console.log('Initializing SK Calculator...');
-  await fetchItems();
-  console.log('App ready!');
+  await Promise.all([
+    loadFabricTypes(),
+    loadBroochTypes(),
+    loadWidthRules()
+  ]);
 }
 
-// Start the app when DOM is ready
 init();
