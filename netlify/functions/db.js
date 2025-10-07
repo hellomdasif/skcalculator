@@ -1,29 +1,24 @@
 import mysql from 'mysql2/promise';
 
-let connection = null;
-
-export async function getConnection() {
-  if (connection) {
-    return connection;
-  }
-
+export async function createConnection() {
   try {
-    connection = await mysql.createConnection({
+    const connection = await mysql.createConnection({
       host: process.env.DB_HOST || '172.105.49.22',
       user: process.env.DB_USER || 'dsfsdfds_n8n',
       password: process.env.DB_PASSWORD || 'Mdlove@123',
-      database: process.env.DB_NAME || 'dsfsdfds_n8n',
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0
+      database: process.env.DB_NAME || 'dsfsdfds_n8n'
     });
 
-    console.log('Database connected successfully');
     return connection;
   } catch (error) {
     console.error('Database connection error:', error);
     throw error;
   }
+}
+
+// Legacy export for old functions
+export async function getConnection() {
+  return await createConnection();
 }
 
 export async function initDatabase() {
