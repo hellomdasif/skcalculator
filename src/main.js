@@ -280,48 +280,75 @@ window.deleteWidthRule = async (id) => {
 
 // ==================== INVOICE ====================
 const widthSelect = document.getElementById('fabric-width-select');
-const setsSelect = document.getElementById('fabric-sets-select');
+const setsInput = document.getElementById('fabric-sets-input');
 const metersInput = document.getElementById('fabric-meters');
 
+// Enable sets input when width is selected
 widthSelect.addEventListener('change', () => {
   const width = widthSelect.value;
   if (!width) {
-    setsSelect.disabled = true;
-    setsSelect.innerHTML = '<option value="">Select width first</option>';
+    setsInput.disabled = true;
+    setsInput.value = '';
     metersInput.value = '';
     return;
   }
-  
-  const rulesForWidth = state.widthRules.filter(r => r.width == width);
-  setsSelect.disabled = false;
-  setsSelect.innerHTML = '<option value="">Select sets</option>' +
-    rulesForWidth.map(r => `<option value="${r.sets}" data-meters="${r.meters}">${r.sets} sets</option>`).join('');
+
+  setsInput.disabled = false;
+  setsInput.value = '';
   metersInput.value = '';
 });
 
-setsSelect.addEventListener('change', () => {
-  const selectedOption = setsSelect.options[setsSelect.selectedIndex];
-  if (selectedOption && selectedOption.dataset.meters) {
-    metersInput.value = selectedOption.dataset.meters;
-  } else {
+// Calculate meters dynamically when sets is entered
+setsInput.addEventListener('input', () => {
+  const width = parseInt(widthSelect.value);
+  const sets = parseInt(setsInput.value);
+
+  if (!width || !sets) {
     metersInput.value = '';
+    return;
   }
+
+  // Validate even number
+  if (sets % 2 !== 0) {
+    metersInput.value = 'Error: Even numbers only';
+    return;
+  }
+
+  // Find base rule for this width (should be 2 sets)
+  const baseRule = state.widthRules.find(r => r.width == width && r.sets == 2);
+
+  if (!baseRule) {
+    metersInput.value = 'Error: No rule for this width';
+    return;
+  }
+
+  // Calculate meters: (meters for 2 sets / 2) * entered sets
+  const metersPerSet = parseFloat(baseRule.meters) / 2;
+  const calculatedMeters = metersPerSet * sets;
+
+  metersInput.value = calculatedMeters.toFixed(1);
 });
 
 document.getElementById('add-fabric-btn').addEventListener('click', () => {
   const fabricId = document.getElementById('fabric-type-select').value;
   const width = widthSelect.value;
-  const sets = setsSelect.value;
+  const sets = setsInput.value;
   const meters = metersInput.value;
-  
-  if (!fabricId || !width || !sets || !meters) {
-    showStatus('Please fill all fabric fields', 'error');
+
+  if (!fabricId || !width || !sets || !meters || meters.includes('Error')) {
+    showStatus('Please fill all fabric fields correctly', 'error');
     return;
   }
-  
+
+  // Validate even number
+  if (parseInt(sets) % 2 !== 0) {
+    showStatus('Sets must be an even number', 'error');
+    return;
+  }
+
   const fabric = state.fabricTypes.find(f => f.id == fabricId);
   const price = fabric.price_per_meter * parseFloat(meters);
-  
+
   state.invoiceItems.push({
     type: 'fabric',
     name: `${fabric.name} (W:${width}, ${sets} sets, ${meters}m)`,
