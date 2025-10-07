@@ -48,15 +48,45 @@
     <!-- Invoice Builder Section -->
     <section class="card">
       <h2>Build Invoice</h2>
+
+      <!-- Invoice Details -->
+      <div class="invoice-details">
+        <div class="form-group">
+          <input
+            type="text"
+            id="customer-name"
+            placeholder="Customer Name"
+            autocomplete="off"
+          >
+        </div>
+        <div class="form-group">
+          <input
+            type="date"
+            id="invoice-date"
+            autocomplete="off"
+          >
+        </div>
+      </div>
+
+      <!-- Add Item to Invoice -->
+      <div class="add-invoice-item">
+        <select id="item-select" class="item-select">
+          <option value="">Select an item to add</option>
+        </select>
+        <button id="add-to-invoice-btn" class="btn btn-secondary">Add to Invoice</button>
+      </div>
+
+      <!-- Invoice Items List -->
       <div id="invoice-items" class="invoice-items">
-        <div class="empty-state">No items available. Add items above first.</div>
+        <div class="empty-state">Add items to the invoice using the dropdown above</div>
       </div>
 
       <div class="total-section">
         <div class="total-row">
           <span class="total-label">Total:</span>
-          <span class="total-amount" id="total-amount">$0.00</span>
+          <span class="total-amount" id="total-amount">₹0.00</span>
         </div>
+        <button id="download-pdf-btn" class="btn btn-primary" style="margin-top: 1rem;">Download PDF</button>
       </div>
     </section>
 

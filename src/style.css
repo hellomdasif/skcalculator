@@ -76,7 +76,9 @@ h2 {
 }
 
 input[type="text"],
-input[type="number"] {
+input[type="number"],
+input[type="date"],
+select {
   width: 100%;
   padding: 0.875rem;
   border: 2px solid var(--border-color);
@@ -84,9 +86,11 @@ input[type="number"] {
   font-size: 1rem;
   transition: border-color 0.2s;
   -webkit-appearance: none;
+  background: white;
 }
 
-input:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: var(--primary-color);
 }
@@ -132,6 +136,25 @@ input::placeholder {
   background: var(--danger-hover);
 }
 
+.btn-secondary {
+  background: #64748b;
+  color: white;
+}
+
+.btn-secondary:hover,
+.btn-secondary:active {
+  background: #475569;
+}
+
+.btn-remove {
+  background: var(--danger-color);
+  color: white;
+  padding: 0.4rem 0.75rem;
+  width: auto;
+  font-size: 0.75rem;
+  min-width: 60px;
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -173,9 +196,28 @@ input::placeholder {
   font-size: 0.875rem;
 }
 
+/* Invoice Details */
+.invoice-details {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+/* Add Invoice Item Section */
+.add-invoice-item {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.item-select {
+  margin-bottom: 0.75rem;
+}
+
 /* Invoice Items */
 .invoice-items {
   margin-bottom: 1.5rem;
+  min-height: 100px;
 }
 
 .invoice-item {
