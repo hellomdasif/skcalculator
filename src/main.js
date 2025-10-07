@@ -398,6 +398,10 @@ const fabricTypeSelect = document.getElementById('fabric-type-select');
 const setsInput = document.getElementById('fabric-sets-input');
 const metersInput = document.getElementById('fabric-meters');
 
+// Other Items Management
+let otherItemsCounter = 0;
+const otherItemsContainer = document.getElementById('other-items-container');
+
 // When width is selected, load fabric types for that width
 widthSelect.addEventListener('change', async () => {
   const width = widthSelect.value;
@@ -531,6 +535,73 @@ document.getElementById('add-brooch-btn').addEventListener('click', () => {
   renderInvoiceItems();
   showStatus('Brooch added to invoice', 'success');
 });
+
+// ==================== OTHER ITEMS ====================
+document.getElementById('add-other-item-btn').addEventListener('click', () => {
+  otherItemsCounter++;
+  const itemId = `other-item-${otherItemsCounter}`;
+
+  const itemDiv = document.createElement('div');
+  itemDiv.className = 'other-item-row';
+  itemDiv.id = itemId;
+  itemDiv.innerHTML = `
+    <div class="form-row" style="gap: 8px; align-items: flex-end;">
+      <div class="form-group" style="flex: 2;">
+        <label>Item Name</label>
+        <input type="text" class="other-item-name" placeholder="e.g., Thread, Button" required>
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label>Price/Unit (₹)</label>
+        <input type="number" class="other-item-price" placeholder="0.00" step="0.01" min="0" required>
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label>Quantity</label>
+        <input type="number" class="other-item-quantity" placeholder="1" min="1" value="1" required>
+      </div>
+      <button type="button" class="btn btn-success btn-sm" onclick="addOtherItemToInvoice('${itemId}')">Add</button>
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeOtherItemInput('${itemId}')">×</button>
+    </div>
+  `;
+
+  otherItemsContainer.appendChild(itemDiv);
+});
+
+window.removeOtherItemInput = (itemId) => {
+  const itemDiv = document.getElementById(itemId);
+  if (itemDiv) {
+    itemDiv.remove();
+  }
+};
+
+window.addOtherItemToInvoice = (itemId) => {
+  const itemDiv = document.getElementById(itemId);
+  if (!itemDiv) return;
+
+  const name = itemDiv.querySelector('.other-item-name').value.trim();
+  const price = parseFloat(itemDiv.querySelector('.other-item-price').value);
+  const quantity = parseInt(itemDiv.querySelector('.other-item-quantity').value);
+
+  if (!name || !price || !quantity) {
+    showStatus('Please fill all other item fields', 'error');
+    return;
+  }
+
+  const total = price * quantity;
+
+  state.invoiceItems.push({
+    type: 'other',
+    name: name,
+    price: price,
+    quantity: quantity,
+    total: total
+  });
+
+  renderInvoiceItems();
+  showStatus('Other item added to invoice', 'success');
+
+  // Remove the input row after adding
+  itemDiv.remove();
+};
 
 function renderInvoiceItems() {
   const list = document.getElementById('invoice-items-list');
