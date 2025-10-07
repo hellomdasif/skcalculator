@@ -1,0 +1,21 @@
+{
+  "name": "skcalculator",
+  "version": "1.0.0",
+  "description": "Personal invoice calculator for fabric/tailoring business",
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": ["calculator", "invoice", "netlify"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "netlify-cli": "^17.0.0"
+  },
+  "dependencies": {
+    "mysql2": "^3.6.5"
+  }
+}
