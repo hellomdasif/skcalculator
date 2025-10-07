@@ -6,6 +6,7 @@ const state = {
   fabricTypes: [],
   broochTypes: [],
   widthRules: [],
+  widthCategories: [],
   invoiceItems: [],
   currentPage: 'invoice'
 };
@@ -42,15 +43,122 @@ function switchPage(pageName) {
   state.currentPage = pageName;
 }
 
-// ==================== FABRIC TYPES ====================
-async function loadFabricTypes() {
+// ==================== WIDTH CATEGORIES ====================
+async function loadWidthCategories() {
   try {
-    const res = await fetch(`${API_BASE}/fabric-types`);
+    const res = await fetch(`${API_BASE}/width-categories`);
+    const data = await res.json();
+    if (data.success) {
+      state.widthCategories = data.data;
+      populateWidthSelects();
+      renderWidthCategories();
+    }
+  } catch (error) {
+    console.error('Error loading width categories:', error);
+    showStatus('Error loading width categories', 'error');
+  }
+}
+
+function populateWidthSelects() {
+  // Populate width select in fabric form
+  const fabricWidthSelect = document.getElementById('fabric-width');
+  if (fabricWidthSelect) {
+    fabricWidthSelect.innerHTML = '<option value="">Select width</option>' +
+      state.widthCategories.map(w =>
+        `<option value="${w.width}">${w.width}</option>`
+      ).join('');
+  }
+
+  // Populate width select in invoice page
+  const invoiceWidthSelect = document.getElementById('fabric-width-select');
+  if (invoiceWidthSelect) {
+    invoiceWidthSelect.innerHTML = '<option value="">Select width</option>' +
+      state.widthCategories.map(w =>
+        `<option value="${w.width}">${w.width}</option>`
+      ).join('');
+  }
+
+  // Populate width select in width rules form
+  const widthRuleWidthSelect = document.getElementById('width-rule-width');
+  if (widthRuleWidthSelect) {
+    widthRuleWidthSelect.innerHTML = '<option value="">Select width</option>' +
+      state.widthCategories.map(w =>
+        `<option value="${w.width}">${w.width}</option>`
+      ).join('');
+  }
+}
+
+function renderWidthCategories() {
+  const list = document.getElementById('width-category-list');
+  if (state.widthCategories.length === 0) {
+    list.innerHTML = '<div class="empty-state">No width categories yet</div>';
+    return;
+  }
+
+  list.innerHTML = state.widthCategories.map(w => `
+    <div class="item-card">
+      <div class="item-info">
+        <div class="item-name">Width ${w.width}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteWidthCategory(${w.id})">Delete</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('width-category-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const width = document.getElementById('width-category-width').value.trim();
+
+  try {
+    const res = await fetch(`${API_BASE}/width-categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ width })
+    });
+    if ((await res.json()).success) {
+      showStatus('Width category added!', 'success');
+      document.getElementById('width-category-form').reset();
+      await loadWidthCategories();
+      renderWidthCategories();
+    }
+  } catch (error) {
+    showStatus('Error adding width category', 'error');
+  }
+});
+
+window.deleteWidthCategory = async (id) => {
+  if (!confirm('Delete this width category?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/width-categories`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if ((await res.json()).success) {
+      showStatus('Width category deleted', 'success');
+      await loadWidthCategories();
+      renderWidthCategories();
+    }
+  } catch (error) {
+    showStatus('Error deleting width category', 'error');
+  }
+};
+
+// ==================== FABRIC TYPES ====================
+async function loadFabricTypes(width = null) {
+  try {
+    let url = `${API_BASE}/fabric-types`;
+    if (width) {
+      url += `?width=${width}`;
+    }
+    const res = await fetch(url);
     const data = await res.json();
     if (data.success) {
       state.fabricTypes = data.data;
       renderFabricTypes();
-      populateFabricSelect();
+      if (!width) {
+        populateFabricSelect();
+      }
     }
   } catch (error) {
     console.error('Error loading fabric types:', error);
@@ -64,11 +172,11 @@ function renderFabricTypes() {
     list.innerHTML = '<div class="empty-state">No fabric types yet</div>';
     return;
   }
-  
+
   list.innerHTML = state.fabricTypes.map(f => `
     <div class="item-card">
       <div class="item-info">
-        <div class="item-name">${f.name}</div>
+        <div class="item-name">${f.name} (Width ${f.width})</div>
         <div class="item-price">${formatCurrency(f.price_per_meter)}/meter</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="deleteFabricType(${f.id})">Delete</button>
@@ -88,12 +196,18 @@ document.getElementById('fabric-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('fabric-name').value.trim();
   const price = parseFloat(document.getElementById('fabric-price').value);
-  
+  const width = document.getElementById('fabric-width').value;
+
+  if (!width) {
+    showStatus('Please select a width', 'error');
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/fabric-types`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, price_per_meter: price })
+      body: JSON.stringify({ name, price_per_meter: price, width })
     });
     const data = await res.json();
     if (data.success) {
@@ -280,17 +394,42 @@ window.deleteWidthRule = async (id) => {
 
 // ==================== INVOICE ====================
 const widthSelect = document.getElementById('fabric-width-select');
+const fabricTypeSelect = document.getElementById('fabric-type-select');
 const setsInput = document.getElementById('fabric-sets-input');
 const metersInput = document.getElementById('fabric-meters');
 
-// Enable sets input when width is selected
-widthSelect.addEventListener('change', () => {
+// When width is selected, load fabric types for that width
+widthSelect.addEventListener('change', async () => {
   const width = widthSelect.value;
   if (!width) {
+    fabricTypeSelect.disabled = true;
+    fabricTypeSelect.innerHTML = '<option value="">Select width first</option>';
     setsInput.disabled = true;
     setsInput.value = '';
     metersInput.value = '';
     return;
+  }
+
+  // Load fabric types for selected width
+  try {
+    const res = await fetch(`${API_BASE}/fabric-types?width=${width}`);
+    const data = await res.json();
+    if (data.success) {
+      const fabrics = data.data;
+      if (fabrics.length === 0) {
+        fabricTypeSelect.innerHTML = '<option value="">No fabrics for this width</option>';
+        fabricTypeSelect.disabled = true;
+      } else {
+        fabricTypeSelect.innerHTML = '<option value="">Select fabric type</option>' +
+          fabrics.map(f =>
+            `<option value="${f.id}" data-price="${f.price_per_meter}">${f.name} - ${formatCurrency(f.price_per_meter)}/m</option>`
+          ).join('');
+        fabricTypeSelect.disabled = false;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading fabrics for width:', error);
+    showStatus('Error loading fabric types', 'error');
   }
 
   setsInput.disabled = false;
@@ -329,8 +468,8 @@ setsInput.addEventListener('input', () => {
   metersInput.value = calculatedMeters.toFixed(1);
 });
 
-document.getElementById('add-fabric-btn').addEventListener('click', () => {
-  const fabricId = document.getElementById('fabric-type-select').value;
+document.getElementById('add-fabric-btn').addEventListener('click', async () => {
+  const fabricId = fabricTypeSelect.value;
   const width = widthSelect.value;
   const sets = setsInput.value;
   const meters = metersInput.value;
@@ -346,19 +485,27 @@ document.getElementById('add-fabric-btn').addEventListener('click', () => {
     return;
   }
 
-  const fabric = state.fabricTypes.find(f => f.id == fabricId);
-  const price = fabric.price_per_meter * parseFloat(meters);
+  // Fetch fabric details
+  const fabricOption = fabricTypeSelect.options[fabricTypeSelect.selectedIndex];
+  const fabricName = fabricOption.text.split(' - ')[0];
+  const pricePerMeter = parseFloat(fabricOption.dataset.price);
+  const price = pricePerMeter * parseFloat(meters);
 
   state.invoiceItems.push({
     type: 'fabric',
-    name: `${fabric.name} (W:${width}, ${sets} sets, ${meters}m)`,
+    name: `${fabricName} (W:${width}, ${sets} sets, ${meters}m)`,
     price: price,
     quantity: 1,
     total: price
   });
-  
+
   renderInvoiceItems();
   showStatus('Fabric added to invoice', 'success');
+
+  // Reset fields
+  fabricTypeSelect.value = '';
+  setsInput.value = '';
+  metersInput.value = '';
 });
 
 document.getElementById('add-brooch-btn').addEventListener('click', () => {
@@ -499,6 +646,7 @@ document.getElementById('invoice-date').valueAsDate = new Date();
 
 async function init() {
   await Promise.all([
+    loadWidthCategories(),
     loadFabricTypes(),
     loadBroochTypes(),
     loadWidthRules()

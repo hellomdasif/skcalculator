@@ -19,6 +19,7 @@
       <button class="nav-btn active" data-page="invoice">Invoice</button>
       <button class="nav-btn" data-page="fabrics">Fabrics</button>
       <button class="nav-btn" data-page="brooches">Brooches</button>
+      <button class="nav-btn" data-page="width-categories">Widths</button>
       <button class="nav-btn" data-page="width-rules">Width Rules</button>
     </nav>
 
@@ -45,17 +46,15 @@
           <h3>Add Fabric Item</h3>
           <div class="form-row">
             <div class="form-group">
-              <label>Fabric Type</label>
-              <select id="fabric-type-select">
-                <option value="">Select fabric type</option>
+              <label>Width (Select first)</label>
+              <select id="fabric-width-select">
+                <option value="">Select width</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Width</label>
-              <select id="fabric-width-select">
-                <option value="">Select width</option>
-                <option value="60">60</option>
-                <option value="44">44</option>
+              <label>Fabric Type</label>
+              <select id="fabric-type-select" disabled>
+                <option value="">Select width first</option>
               </select>
             </div>
           </div>
@@ -116,9 +115,17 @@
           <h2>Manage Fabric Types</h2>
 
           <form id="fabric-form" class="form">
-            <div class="form-group">
-              <label>Fabric Name</label>
-              <input type="text" id="fabric-name" placeholder="e.g., Cotton, Silk" required>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Fabric Name</label>
+                <input type="text" id="fabric-name" placeholder="e.g., Cotton, Silk" required>
+              </div>
+              <div class="form-group">
+                <label>Width</label>
+                <select id="fabric-width" required>
+                  <option value="">Select width</option>
+                </select>
+              </div>
             </div>
             <div class="form-group">
               <label>Price per Meter (₹)</label>
@@ -156,6 +163,26 @@
         </section>
       </div>
 
+      <!-- Width Categories Management Page -->
+      <div class="page" id="width-categories-page">
+        <section class="card">
+          <h2>Manage Width Categories</h2>
+          <p class="help-text">Add available fabric widths (e.g., 44, 60, 72)</p>
+
+          <form id="width-category-form" class="form">
+            <div class="form-group">
+              <label>Width (inches/cm)</label>
+              <input type="text" id="width-category-width" placeholder="e.g., 44, 60, 72" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Width Category</button>
+          </form>
+
+          <div id="width-category-list" class="items-list">
+            <div class="loading">Loading...</div>
+          </div>
+        </section>
+      </div>
+
       <!-- Width Rules Management Page -->
       <div class="page" id="width-rules-page">
         <section class="card">
@@ -168,8 +195,6 @@
                 <label>Width</label>
                 <select id="width-rule-width" required>
                   <option value="">Select width</option>
-                  <option value="60">60</option>
-                  <option value="44">44</option>
                 </select>
               </div>
               <div class="form-group">
