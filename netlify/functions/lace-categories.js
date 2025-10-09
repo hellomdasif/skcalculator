@@ -27,40 +27,40 @@ export const handler = async (event) => {
     }
 
     if (event.httpMethod === 'POST') {
-      const { name } = JSON.parse(event.body);
-      if (!name) {
+      const { name, price } = JSON.parse(event.body);
+      if (!name || !price) {
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ success: false, error: 'Name is required' })
+          body: JSON.stringify({ success: false, error: 'Name and price are required' })
         };
       }
       const [result] = await connection.execute(
-        'INSERT INTO lace_categories (name) VALUES (?)',
-        [name]
+        'INSERT INTO lace_categories (name, price) VALUES (?, ?)',
+        [name, price]
       );
       return {
         statusCode: 201,
         headers,
         body: JSON.stringify({
           success: true,
-          data: { id: result.insertId, name }
+          data: { id: result.insertId, name, price }
         })
       };
     }
 
     if (event.httpMethod === 'PUT') {
-      const { id, name } = JSON.parse(event.body);
-      if (!id || !name) {
+      const { id, name, price } = JSON.parse(event.body);
+      if (!id || !name || !price) {
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ success: false, error: 'ID and name are required' })
+          body: JSON.stringify({ success: false, error: 'ID, name and price are required' })
         };
       }
       await connection.execute(
-        'UPDATE lace_categories SET name = ? WHERE id = ?',
-        [name, id]
+        'UPDATE lace_categories SET name = ?, price = ? WHERE id = ?',
+        [name, price, id]
       );
       return {
         statusCode: 200,
