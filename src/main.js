@@ -762,14 +762,14 @@ document.getElementById('calculate-invoice-btn')?.addEventListener('click', () =
   const fabricOption = fabricTypeSelect.options[fabricTypeSelect.selectedIndex];
   const fabricName = fabricOption.text.split(' - ')[0];
   const pricePerMeter = parseFloat(fabricOption.dataset.price);
-  const fabricPrice = pricePerMeter * parseFloat(meters);
+  const fabricTotal = pricePerMeter * parseFloat(meters);
 
   state.invoiceItems.push({
     type: 'fabric',
     name: `${fabricName} (W:${width}, ${sets} sets, ${meters}m)`,
-    price: fabricPrice,
-    quantity: 1,
-    total: fabricPrice
+    price: pricePerMeter,
+    quantity: parseFloat(meters),
+    total: fabricTotal
   });
 
   // Add Brooch Item (if selected)
