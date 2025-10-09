@@ -30,28 +30,19 @@ export const handler = async (event) => {
 
     // POST - Create new width rule
     if (event.httpMethod === 'POST') {
-      const { width, sets, meters } = JSON.parse(event.body);
+      const { width, sets, meters, lace_rolls } = JSON.parse(event.body);
 
-      if (!width || !sets || !meters) {
+      if (!width || !sets || !meters || lace_rolls === undefined) {
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ success: false, error: 'Width, sets, and meters are required' })
-        };
-      }
-
-      // Validate even number for sets
-      if (sets % 2 !== 0) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ success: false, error: 'Sets must be an even number' })
+          body: JSON.stringify({ success: false, error: 'Width, sets, meters, and lace rolls are required' })
         };
       }
 
       const [result] = await connection.execute(
-        'INSERT INTO width_rules (width, sets, meters) VALUES (?, ?, ?)',
-        [width, sets, meters]
+        'INSERT INTO width_rules (width, sets, meters, lace_rolls) VALUES (?, ?, ?, ?)',
+        [width, sets, meters, lace_rolls]
       );
 
       return {
@@ -59,35 +50,26 @@ export const handler = async (event) => {
         headers,
         body: JSON.stringify({
           success: true,
-          data: { id: result.insertId, width, sets, meters }
+          data: { id: result.insertId, width, sets, meters, lace_rolls }
         })
       };
     }
 
     // PUT - Update width rule
     if (event.httpMethod === 'PUT') {
-      const { id, width, sets, meters } = JSON.parse(event.body);
+      const { id, width, sets, meters, lace_rolls } = JSON.parse(event.body);
 
-      if (!id || !width || !sets || !meters) {
+      if (!id || !width || !sets || !meters || lace_rolls === undefined) {
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ success: false, error: 'ID, width, sets, and meters are required' })
-        };
-      }
-
-      // Validate even number for sets
-      if (sets % 2 !== 0) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ success: false, error: 'Sets must be an even number' })
+          body: JSON.stringify({ success: false, error: 'ID, width, sets, meters, and lace rolls are required' })
         };
       }
 
       await connection.execute(
-        'UPDATE width_rules SET width = ?, sets = ?, meters = ? WHERE id = ?',
-        [width, sets, meters, id]
+        'UPDATE width_rules SET width = ?, sets = ?, meters = ?, lace_rolls = ? WHERE id = ?',
+        [width, sets, meters, lace_rolls, id]
       );
 
       return {

@@ -15,15 +15,10 @@ export const handler = async (event) => {
   const connection = await createConnection();
 
   try {
-    // GET - Fetch all brooch types with category info
     if (event.httpMethod === 'GET') {
-      const [rows] = await connection.execute(`
-        SELECT bt.*, bc.name as category_name
-        FROM brooch_types bt
-        LEFT JOIN brooch_categories bc ON bt.category_id = bc.id
-        ORDER BY bc.name ASC, bt.name ASC
-      `);
-
+      const [rows] = await connection.execute(
+        'SELECT * FROM extra_charges ORDER BY name ASC'
+      );
       return {
         statusCode: 200,
         headers,
@@ -31,50 +26,42 @@ export const handler = async (event) => {
       };
     }
 
-    // POST - Create new brooch type
     if (event.httpMethod === 'POST') {
-      const { category_id, name, price } = JSON.parse(event.body);
-
-      if (!category_id || !name || !price) {
+      const { name, price } = JSON.parse(event.body);
+      if (!name || !price) {
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ success: false, error: 'Category, name and price are required' })
+          body: JSON.stringify({ success: false, error: 'Name and price are required' })
         };
       }
-
       const [result] = await connection.execute(
-        'INSERT INTO brooch_types (category_id, name, price) VALUES (?, ?, ?)',
-        [category_id, name, price]
+        'INSERT INTO extra_charges (name, price) VALUES (?, ?)',
+        [name, price]
       );
-
       return {
         statusCode: 201,
         headers,
         body: JSON.stringify({
           success: true,
-          data: { id: result.insertId, category_id, name, price }
+          data: { id: result.insertId, name, price }
         })
       };
     }
 
-    // PUT - Update brooch type
     if (event.httpMethod === 'PUT') {
-      const { id, category_id, name, price } = JSON.parse(event.body);
-
-      if (!id || !category_id || !name || !price) {
+      const { id, name, price } = JSON.parse(event.body);
+      if (!id || !name || !price) {
         return {
           statusCode: 400,
           headers,
-          body: JSON.stringify({ success: false, error: 'ID, category, name and price are required' })
+          body: JSON.stringify({ success: false, error: 'ID, name and price are required' })
         };
       }
-
       await connection.execute(
-        'UPDATE brooch_types SET category_id = ?, name = ?, price = ? WHERE id = ?',
-        [category_id, name, price, id]
+        'UPDATE extra_charges SET name = ?, price = ? WHERE id = ?',
+        [name, price, id]
       );
-
       return {
         statusCode: 200,
         headers,
@@ -82,10 +69,8 @@ export const handler = async (event) => {
       };
     }
 
-    // DELETE - Delete brooch type
     if (event.httpMethod === 'DELETE') {
       const { id } = JSON.parse(event.body);
-
       if (!id) {
         return {
           statusCode: 400,
@@ -93,9 +78,7 @@ export const handler = async (event) => {
           body: JSON.stringify({ success: false, error: 'ID is required' })
         };
       }
-
-      await connection.execute('DELETE FROM brooch_types WHERE id = ?', [id]);
-
+      await connection.execute('DELETE FROM extra_charges WHERE id = ?', [id]);
       return {
         statusCode: 200,
         headers,
