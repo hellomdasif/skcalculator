@@ -776,11 +776,12 @@ document.getElementById('calculate-invoice-btn')?.addEventListener('click', () =
   if (broochId && broochQuantity) {
     const brooch = state.broochCategories.find(b => b.id == broochId);
     if (brooch) {
-      const broochTotal = brooch.price * broochQuantity;
+      const broochPrice = parseFloat(brooch.price);
+      const broochTotal = broochPrice * broochQuantity;
       state.invoiceItems.push({
         type: 'brooch',
         name: `${brooch.name} Brooch`,
-        price: brooch.price,
+        price: broochPrice,
         quantity: broochQuantity,
         total: broochTotal
       });
@@ -791,11 +792,12 @@ document.getElementById('calculate-invoice-btn')?.addEventListener('click', () =
   if (laceId && laceQuantity) {
     const lace = state.laceCategories.find(l => l.id == laceId);
     if (lace) {
-      const laceTotal = lace.price * laceQuantity;
+      const lacePrice = parseFloat(lace.price);
+      const laceTotal = lacePrice * laceQuantity;
       state.invoiceItems.push({
         type: 'lace',
         name: `${lace.name} Lace`,
-        price: lace.price,
+        price: lacePrice,
         quantity: laceQuantity,
         total: laceTotal
       });
@@ -806,12 +808,13 @@ document.getElementById('calculate-invoice-btn')?.addEventListener('click', () =
   if (extraChargeId) {
     const extra = state.extraCharges.find(e => e.id == extraChargeId);
     if (extra) {
+      const extraPrice = parseFloat(extra.price);
       state.invoiceItems.push({
         type: 'extra',
         name: extra.name,
-        price: extra.price,
+        price: extraPrice,
         quantity: 1,
-        total: extra.price
+        total: extraPrice
       });
     }
   }
@@ -929,7 +932,7 @@ function renderInvoiceItems() {
     </div>
   `).join('');
   
-  const total = state.invoiceItems.reduce((sum, item) => sum + item.total, 0);
+  const total = state.invoiceItems.reduce((sum, item) => sum + parseFloat(item.total), 0);
   document.getElementById('invoice-total').textContent = formatCurrency(total);
 }
 
