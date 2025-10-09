@@ -79,17 +79,35 @@
           <h3>Add Brooch Item</h3>
           <div class="form-row">
             <div class="form-group">
-              <label>Brooch Type</label>
-              <select id="brooch-type-select">
-                <option value="">Select brooch type</option>
+              <label>Brooch Category</label>
+              <select id="brooch-category-invoice-select">
+                <option value="">Select brooch category</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Quantity</label>
-              <input type="number" id="brooch-quantity" min="1" value="1">
+              <label>Quantity (auto from sets)</label>
+              <input type="number" id="brooch-quantity" min="1" value="1" readonly>
             </div>
           </div>
           <button id="add-brooch-btn" class="btn btn-primary">Add Brooch to Invoice</button>
+
+          <hr class="separator">
+
+          <!-- Add Lace Item -->
+          <h3>Add Lace Item</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Lace Category</label>
+              <select id="lace-category-invoice-select">
+                <option value="">Select lace category</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Quantity (auto-calculated)</label>
+              <input type="number" id="lace-quantity" min="1" value="1" readonly>
+            </div>
+          </div>
+          <button id="add-lace-btn" class="btn btn-primary">Add Lace to Invoice</button>
 
           <hr class="separator">
 
@@ -153,41 +171,21 @@
       <!-- Brooch Management Page -->
       <div class="page" id="brooches-page">
         <section class="card">
-          <h2>Manage Brooch Categories</h2>
+          <h2>Manage Brooches</h2>
           <form id="brooch-category-form" class="form">
-            <div class="form-group">
-              <label>Category Name</label>
-              <input type="text" id="brooch-category-name" placeholder="e.g., Heavy, Light" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Category</button>
-          </form>
-          <div id="brooch-category-list" class="items-list">
-            <div class="loading">Loading...</div>
-          </div>
-        </section>
-
-        <section class="card">
-          <h2>Manage Brooch Types</h2>
-          <form id="brooch-form" class="form">
             <div class="form-row">
               <div class="form-group">
-                <label>Category</label>
-                <select id="brooch-category-select" required>
-                  <option value="">Select category</option>
-                </select>
+                <label>Category Name</label>
+                <input type="text" id="brooch-category-name" placeholder="e.g., Heavy, Light" required>
               </div>
               <div class="form-group">
-                <label>Brooch Name</label>
-                <input type="text" id="brooch-name" placeholder="e.g., Gold Brooch" required>
+                <label>Price per Unit (₹)</label>
+                <input type="number" id="brooch-category-price" placeholder="0.00" step="0.01" min="0" required>
               </div>
             </div>
-            <div class="form-group">
-              <label>Price (₹)</label>
-              <input type="number" id="brooch-price" placeholder="0.00" step="0.01" min="0" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Brooch Type</button>
+            <button type="submit" class="btn btn-primary">Add Brooch Category</button>
           </form>
-          <div id="brooch-list" class="items-list">
+          <div id="brooch-category-list" class="items-list">
             <div class="loading">Loading...</div>
           </div>
         </section>
@@ -196,41 +194,21 @@
       <!-- Lace Management Page -->
       <div class="page" id="laces-page">
         <section class="card">
-          <h2>Manage Lace Categories</h2>
+          <h2>Manage Laces</h2>
           <form id="lace-category-form" class="form">
-            <div class="form-group">
-              <label>Category Name</label>
-              <input type="text" id="lace-category-name" placeholder="e.g., V Heavy, Heavy, Light" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Category</button>
-          </form>
-          <div id="lace-category-list" class="items-list">
-            <div class="loading">Loading...</div>
-          </div>
-        </section>
-
-        <section class="card">
-          <h2>Manage Lace Types</h2>
-          <form id="lace-form" class="form">
             <div class="form-row">
               <div class="form-group">
-                <label>Category</label>
-                <select id="lace-category-select" required>
-                  <option value="">Select category</option>
-                </select>
+                <label>Category Name</label>
+                <input type="text" id="lace-category-name" placeholder="e.g., V Heavy, Heavy, Light" required>
               </div>
               <div class="form-group">
-                <label>Lace Name</label>
-                <input type="text" id="lace-name" placeholder="e.g., Gold Lace" required>
+                <label>Price per Roll (₹)</label>
+                <input type="number" id="lace-category-price" placeholder="0.00" step="0.01" min="0" required>
               </div>
             </div>
-            <div class="form-group">
-              <label>Price (₹)</label>
-              <input type="number" id="lace-price" placeholder="0.00" step="0.01" min="0" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Lace Type</button>
+            <button type="submit" class="btn btn-primary">Add Lace Category</button>
           </form>
-          <div id="lace-list" class="items-list">
+          <div id="lace-category-list" class="items-list">
             <div class="loading">Loading...</div>
           </div>
         </section>
