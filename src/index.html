@@ -71,12 +71,10 @@
             </div>
           </div>
 
-          <button id="add-fabric-btn" class="btn btn-primary">Add Fabric to Invoice</button>
-
           <hr class="separator">
 
           <!-- Add Brooch Item -->
-          <h3>Add Brooch Item</h3>
+          <h3>Brooch Selection</h3>
           <div class="form-row">
             <div class="form-group">
               <label>Brooch Category</label>
@@ -89,12 +87,11 @@
               <input type="number" id="brooch-quantity" min="1" value="1" readonly>
             </div>
           </div>
-          <button id="add-brooch-btn" class="btn btn-primary">Add Brooch to Invoice</button>
 
           <hr class="separator">
 
           <!-- Add Lace Item -->
-          <h3>Add Lace Item</h3>
+          <h3>Lace Selection</h3>
           <div class="form-row">
             <div class="form-group">
               <label>Lace Category</label>
@@ -107,16 +104,27 @@
               <input type="number" id="lace-quantity" min="1" value="1" readonly>
             </div>
           </div>
-          <button id="add-lace-btn" class="btn btn-primary">Add Lace to Invoice</button>
 
           <hr class="separator">
 
-          <!-- Add Other Items -->
-          <h3>Add Other Items</h3>
-          <div id="other-items-container">
-            <!-- Dynamic other items will be added here -->
+          <!-- Add Extra Charges -->
+          <h3>Extra Charges (Optional)</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Select Extra Charge</label>
+              <select id="extra-charge-invoice-select">
+                <option value="">Select extra charge (optional)</option>
+              </select>
+            </div>
           </div>
-          <button id="add-other-item-btn" class="btn btn-secondary">+ Add Other Item</button>
+
+          <hr class="separator">
+
+          <!-- Action Buttons -->
+          <div class="form-row" style="gap: 10px;">
+            <button id="calculate-invoice-btn" class="btn btn-success" style="flex: 2;">Calculate Invoice</button>
+            <button id="clear-invoice-btn" class="btn btn-danger" style="flex: 1;">Clear Form</button>
+          </div>
 
           <hr class="separator">
 

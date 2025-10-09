@@ -9,7 +9,15 @@ const state = {
   extraCharges: [],
   widthRules: [],
   invoiceItems: [],
-  currentPage: 'invoice'
+  currentPage: 'invoice',
+  // Edit state tracking
+  editMode: {
+    fabric: null,
+    brooch: null,
+    lace: null,
+    extra: null,
+    widthRule: null
+  }
 };
 
 // Utility Functions
@@ -72,7 +80,10 @@ function renderBroochCategories() {
         <div class="item-name">${c.name}</div>
         <div class="item-price">${formatCurrency(c.price)}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteBroochCategory(${c.id})">Delete</button>
+      <div class="item-actions">
+        <button class="btn btn-primary btn-sm" onclick="editBroochCategory(${c.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBroochCategory(${c.id})">Delete</button>
+      </div>
     </div>
   `).join('');
 }
@@ -85,6 +96,30 @@ function populateBroochCategorySelects() {
   }
 }
 
+window.editBroochCategory = (id) => {
+  const brooch = state.broochCategories.find(b => b.id === id);
+  if (!brooch) return;
+
+  // Populate form
+  document.getElementById('brooch-category-name').value = brooch.name;
+  document.getElementById('brooch-category-price').value = brooch.price;
+
+  // Update button and store edit state
+  const submitBtn = document.querySelector('#brooch-category-form button[type="submit"]');
+  submitBtn.textContent = 'Update Brooch';
+  state.editMode.brooch = id;
+
+  // Scroll to form
+  document.getElementById('brooch-category-form').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.cancelBroochEdit = () => {
+  document.getElementById('brooch-category-form').reset();
+  const submitBtn = document.querySelector('#brooch-category-form button[type="submit"]');
+  submitBtn.textContent = 'Add Brooch';
+  state.editMode.brooch = null;
+};
+
 document.getElementById('brooch-category-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('brooch-category-name').value.trim();
@@ -95,19 +130,28 @@ document.getElementById('brooch-category-form')?.addEventListener('submit', asyn
     return;
   }
 
+  const isEditMode = state.editMode.brooch !== null;
+  const method = isEditMode ? 'PUT' : 'POST';
+  const body = isEditMode
+    ? { id: state.editMode.brooch, name, price }
+    : { name, price };
+
   try {
     const res = await fetch(`${API_BASE}/brooch-categories`, {
-      method: 'POST',
+      method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, price })
+      body: JSON.stringify(body)
     });
     if ((await res.json()).success) {
-      showStatus('Brooch category added!', 'success');
+      showStatus(isEditMode ? 'Brooch category updated!' : 'Brooch category added!', 'success');
       document.getElementById('brooch-category-form').reset();
+      const submitBtn = document.querySelector('#brooch-category-form button[type="submit"]');
+      submitBtn.textContent = 'Add Brooch';
+      state.editMode.brooch = null;
       await loadBroochCategories();
     }
   } catch (error) {
-    showStatus('Error adding category', 'error');
+    showStatus(isEditMode ? 'Error updating category' : 'Error adding category', 'error');
   }
 });
 
@@ -156,7 +200,10 @@ function renderLaceCategories() {
         <div class="item-name">${c.name}</div>
         <div class="item-price">${formatCurrency(c.price)}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteLaceCategory(${c.id})">Delete</button>
+      <div class="item-actions">
+        <button class="btn btn-primary btn-sm" onclick="editLaceCategory(${c.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteLaceCategory(${c.id})">Delete</button>
+      </div>
     </div>
   `).join('');
 }
@@ -169,6 +216,30 @@ function populateLaceCategorySelects() {
   }
 }
 
+window.editLaceCategory = (id) => {
+  const lace = state.laceCategories.find(l => l.id === id);
+  if (!lace) return;
+
+  // Populate form
+  document.getElementById('lace-category-name').value = lace.name;
+  document.getElementById('lace-category-price').value = lace.price;
+
+  // Update button and store edit state
+  const submitBtn = document.querySelector('#lace-category-form button[type="submit"]');
+  submitBtn.textContent = 'Update Lace';
+  state.editMode.lace = id;
+
+  // Scroll to form
+  document.getElementById('lace-category-form').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.cancelLaceEdit = () => {
+  document.getElementById('lace-category-form').reset();
+  const submitBtn = document.querySelector('#lace-category-form button[type="submit"]');
+  submitBtn.textContent = 'Add Lace';
+  state.editMode.lace = null;
+};
+
 document.getElementById('lace-category-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('lace-category-name').value.trim();
@@ -179,19 +250,28 @@ document.getElementById('lace-category-form')?.addEventListener('submit', async 
     return;
   }
 
+  const isEditMode = state.editMode.lace !== null;
+  const method = isEditMode ? 'PUT' : 'POST';
+  const body = isEditMode
+    ? { id: state.editMode.lace, name, price }
+    : { name, price };
+
   try {
     const res = await fetch(`${API_BASE}/lace-categories`, {
-      method: 'POST',
+      method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, price })
+      body: JSON.stringify(body)
     });
     if ((await res.json()).success) {
-      showStatus('Lace category added!', 'success');
+      showStatus(isEditMode ? 'Lace category updated!' : 'Lace category added!', 'success');
       document.getElementById('lace-category-form').reset();
+      const submitBtn = document.querySelector('#lace-category-form button[type="submit"]');
+      submitBtn.textContent = 'Add Lace';
+      state.editMode.lace = null;
       await loadLaceCategories();
     }
   } catch (error) {
-    showStatus('Error adding category', 'error');
+    showStatus(isEditMode ? 'Error updating category' : 'Error adding category', 'error');
   }
 });
 
@@ -247,7 +327,10 @@ function renderFabricTypes() {
         <div class="item-name">${f.name} (Width ${f.width})</div>
         <div class="item-price">${formatCurrency(f.price_per_meter)}/meter</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteFabricType(${f.id})">Delete</button>
+      <div class="item-actions">
+        <button class="btn btn-primary btn-sm" onclick="editFabricType(${f.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteFabricType(${f.id})">Delete</button>
+      </div>
     </div>
   `).join('');
 }
@@ -260,6 +343,31 @@ function populateFabricSelect() {
     ).join('');
 }
 
+window.editFabricType = (id) => {
+  const fabric = state.fabricTypes.find(f => f.id === id);
+  if (!fabric) return;
+
+  // Populate form
+  document.getElementById('fabric-name').value = fabric.name;
+  document.getElementById('fabric-price').value = fabric.price_per_meter;
+  document.getElementById('fabric-width').value = fabric.width;
+
+  // Update button and store edit state
+  const submitBtn = document.querySelector('#fabric-form button[type="submit"]');
+  submitBtn.textContent = 'Update Fabric';
+  state.editMode.fabric = id;
+
+  // Scroll to form
+  document.getElementById('fabric-form').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.cancelFabricEdit = () => {
+  document.getElementById('fabric-form').reset();
+  const submitBtn = document.querySelector('#fabric-form button[type="submit"]');
+  submitBtn.textContent = 'Add Fabric';
+  state.editMode.fabric = null;
+};
+
 document.getElementById('fabric-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('fabric-name').value.trim();
@@ -271,20 +379,29 @@ document.getElementById('fabric-form').addEventListener('submit', async (e) => {
     return;
   }
 
+  const isEditMode = state.editMode.fabric !== null;
+  const method = isEditMode ? 'PUT' : 'POST';
+  const body = isEditMode
+    ? { id: state.editMode.fabric, name, price_per_meter: price, width }
+    : { name, price_per_meter: price, width };
+
   try {
     const res = await fetch(`${API_BASE}/fabric-types`, {
-      method: 'POST',
+      method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, price_per_meter: price, width })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
     if (data.success) {
-      showStatus('Fabric type added!', 'success');
+      showStatus(isEditMode ? 'Fabric type updated!' : 'Fabric type added!', 'success');
       document.getElementById('fabric-form').reset();
+      const submitBtn = document.querySelector('#fabric-form button[type="submit"]');
+      submitBtn.textContent = 'Add Fabric';
+      state.editMode.fabric = null;
       await loadFabricTypes();
     }
   } catch (error) {
-    showStatus('Error adding fabric type', 'error');
+    showStatus(isEditMode ? 'Error updating fabric type' : 'Error adding fabric type', 'error');
   }
 });
 
@@ -314,9 +431,18 @@ async function loadExtraCharges() {
     if (data.success) {
       state.extraCharges = data.data;
       renderExtraCharges();
+      populateExtraChargeSelect();
     }
   } catch (error) {
     console.error('Error loading extra charges:', error);
+  }
+}
+
+function populateExtraChargeSelect() {
+  const select = document.getElementById('extra-charge-invoice-select');
+  if (select && state.extraCharges.length > 0) {
+    select.innerHTML = '<option value="">Select extra charge (optional)</option>' +
+      state.extraCharges.map(e => `<option value="${e.id}" data-price="${e.price}">${e.name} - ${formatCurrency(e.price)}</option>`).join('');
   }
 }
 
@@ -333,29 +459,65 @@ function renderExtraCharges() {
         <div class="item-name">${e.name}</div>
         <div class="item-price">${formatCurrency(e.price)}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteExtraCharge(${e.id})">Delete</button>
+      <div class="item-actions">
+        <button class="btn btn-primary btn-sm" onclick="editExtraCharge(${e.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteExtraCharge(${e.id})">Delete</button>
+      </div>
     </div>
   `).join('');
 }
+
+window.editExtraCharge = (id) => {
+  const extra = state.extraCharges.find(e => e.id === id);
+  if (!extra) return;
+
+  // Populate form
+  document.getElementById('extra-charge-name').value = extra.name;
+  document.getElementById('extra-charge-price').value = extra.price;
+
+  // Update button and store edit state
+  const submitBtn = document.querySelector('#extra-charge-form button[type="submit"]');
+  submitBtn.textContent = 'Update Extra Charge';
+  state.editMode.extra = id;
+
+  // Scroll to form
+  document.getElementById('extra-charge-form').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.cancelExtraEdit = () => {
+  document.getElementById('extra-charge-form').reset();
+  const submitBtn = document.querySelector('#extra-charge-form button[type="submit"]');
+  submitBtn.textContent = 'Add Extra Charge';
+  state.editMode.extra = null;
+};
 
 document.getElementById('extra-charge-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('extra-charge-name').value.trim();
   const price = parseFloat(document.getElementById('extra-charge-price').value);
 
+  const isEditMode = state.editMode.extra !== null;
+  const method = isEditMode ? 'PUT' : 'POST';
+  const body = isEditMode
+    ? { id: state.editMode.extra, name, price }
+    : { name, price };
+
   try {
     const res = await fetch(`${API_BASE}/extra-charges`, {
-      method: 'POST',
+      method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, price })
+      body: JSON.stringify(body)
     });
     if ((await res.json()).success) {
-      showStatus('Extra charge added!', 'success');
+      showStatus(isEditMode ? 'Extra charge updated!' : 'Extra charge added!', 'success');
       document.getElementById('extra-charge-form').reset();
+      const submitBtn = document.querySelector('#extra-charge-form button[type="submit"]');
+      submitBtn.textContent = 'Add Extra Charge';
+      state.editMode.extra = null;
       await loadExtraCharges();
     }
   } catch (error) {
-    showStatus('Error adding extra charge', 'error');
+    showStatus(isEditMode ? 'Error updating extra charge' : 'Error adding extra charge', 'error');
   }
 });
 
@@ -403,10 +565,39 @@ function renderWidthRules() {
       <div class="item-info">
         <div class="item-name">Width ${r.width} | ${r.sets} Sets → ${r.meters}m, ${r.lace_rolls} lace</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteWidthRule(${r.id})">Delete</button>
+      <div class="item-actions">
+        <button class="btn btn-primary btn-sm" onclick="editWidthRule(${r.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteWidthRule(${r.id})">Delete</button>
+      </div>
     </div>
   `).join('');
 }
+
+window.editWidthRule = (id) => {
+  const rule = state.widthRules.find(r => r.id === id);
+  if (!rule) return;
+
+  // Populate form
+  document.getElementById('width-rule-width').value = rule.width;
+  document.getElementById('width-rule-sets').value = rule.sets;
+  document.getElementById('width-rule-meters').value = rule.meters;
+  document.getElementById('width-rule-lace').value = rule.lace_rolls;
+
+  // Update button and store edit state
+  const submitBtn = document.querySelector('#width-rule-form button[type="submit"]');
+  submitBtn.textContent = 'Update Width Rule';
+  state.editMode.widthRule = id;
+
+  // Scroll to form
+  document.getElementById('width-rule-form').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.cancelWidthRuleEdit = () => {
+  document.getElementById('width-rule-form').reset();
+  const submitBtn = document.querySelector('#width-rule-form button[type="submit"]');
+  submitBtn.textContent = 'Add Width Rule';
+  state.editMode.widthRule = null;
+};
 
 document.getElementById('width-rule-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -415,19 +606,29 @@ document.getElementById('width-rule-form')?.addEventListener('submit', async (e)
   const meters = parseFloat(document.getElementById('width-rule-meters').value);
   const lace_rolls = parseInt(document.getElementById('width-rule-lace').value);
 
+  const isEditMode = state.editMode.widthRule !== null;
+  const method = isEditMode ? 'PUT' : 'POST';
+  const body = isEditMode
+    ? { id: state.editMode.widthRule, width, sets, meters, lace_rolls }
+    : { width, sets, meters, lace_rolls };
+
   try {
     const res = await fetch(`${API_BASE}/width-rules`, {
-      method: 'POST',
+      method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ width, sets, meters, lace_rolls })
+      body: JSON.stringify(body)
     });
     if ((await res.json()).success) {
-      showStatus('Width rule added!', 'success');
+      showStatus(isEditMode ? 'Width rule updated!' : 'Width rule added!', 'success');
       document.getElementById('width-rule-form').reset();
+      const submitBtn = document.querySelector('#width-rule-form button[type="submit"]');
+      submitBtn.textContent = 'Add Width Rule';
+      state.editMode.widthRule = null;
       await loadWidthRules();
+      populateWidthDropdown();
     }
   } catch (error) {
-    showStatus('Error adding width rule', 'error');
+    showStatus(isEditMode ? 'Error updating width rule' : 'Error adding width rule', 'error');
   }
 });
 
@@ -453,10 +654,6 @@ const widthSelect = document.getElementById('fabric-width-select');
 const fabricTypeSelect = document.getElementById('fabric-type-select');
 const setsInput = document.getElementById('fabric-sets-input');
 const metersInput = document.getElementById('fabric-meters');
-
-// Other Items Management
-let otherItemsCounter = 0;
-const otherItemsContainer = document.getElementById('other-items-container');
 
 // When width is selected, load fabric types for that width
 widthSelect.addEventListener('change', async () => {
@@ -534,162 +731,184 @@ setsInput.addEventListener('input', () => {
   document.getElementById('lace-quantity').value = Math.round(laceQuantity);
 });
 
-document.getElementById('add-fabric-btn')?.addEventListener('click', async () => {
+// ==================== CALCULATE INVOICE BUTTON ====================
+document.getElementById('calculate-invoice-btn')?.addEventListener('click', () => {
+  const customerName = document.getElementById('customer-name').value.trim();
   const fabricId = fabricTypeSelect.value;
   const width = widthSelect.value;
   const sets = setsInput.value;
   const meters = metersInput.value;
+  const broochId = document.getElementById('brooch-category-invoice-select').value;
+  const broochQuantity = parseInt(document.getElementById('brooch-quantity').value);
+  const laceId = document.getElementById('lace-category-invoice-select').value;
+  const laceQuantity = parseInt(document.getElementById('lace-quantity').value);
+  const extraChargeId = document.getElementById('extra-charge-invoice-select').value;
+
+  // Clear existing items
+  state.invoiceItems = [];
+
+  // Validate required fields
+  if (!customerName) {
+    showStatus('Please enter customer name', 'error');
+    return;
+  }
 
   if (!fabricId || !width || !sets || !meters || meters.includes('Error')) {
     showStatus('Please fill all fabric fields correctly', 'error');
     return;
   }
 
-  // Fetch fabric details
+  // Add Fabric Item
   const fabricOption = fabricTypeSelect.options[fabricTypeSelect.selectedIndex];
   const fabricName = fabricOption.text.split(' - ')[0];
   const pricePerMeter = parseFloat(fabricOption.dataset.price);
-  const price = pricePerMeter * parseFloat(meters);
+  const fabricPrice = pricePerMeter * parseFloat(meters);
 
   state.invoiceItems.push({
     type: 'fabric',
     name: `${fabricName} (W:${width}, ${sets} sets, ${meters}m)`,
-    price: price,
+    price: fabricPrice,
     quantity: 1,
-    total: price
+    total: fabricPrice
   });
 
-  renderInvoiceItems();
-  showStatus('Fabric added to invoice', 'success');
-
-  // Reset fields
-  fabricTypeSelect.value = '';
-  setsInput.value = '';
-  metersInput.value = '';
-});
-
-document.getElementById('add-brooch-btn')?.addEventListener('click', () => {
-  const broochId = document.getElementById('brooch-category-invoice-select').value;
-  const quantity = parseInt(document.getElementById('brooch-quantity').value);
-
-  if (!broochId || !quantity) {
-    showStatus('Please select brooch category and quantity', 'error');
-    return;
+  // Add Brooch Item (if selected)
+  if (broochId && broochQuantity) {
+    const brooch = state.broochCategories.find(b => b.id == broochId);
+    if (brooch) {
+      const broochTotal = brooch.price * broochQuantity;
+      state.invoiceItems.push({
+        type: 'brooch',
+        name: `${brooch.name} Brooch`,
+        price: brooch.price,
+        quantity: broochQuantity,
+        total: broochTotal
+      });
+    }
   }
 
-  const brooch = state.broochCategories.find(b => b.id == broochId);
-  const total = brooch.price * quantity;
+  // Add Lace Item (if selected)
+  if (laceId && laceQuantity) {
+    const lace = state.laceCategories.find(l => l.id == laceId);
+    if (lace) {
+      const laceTotal = lace.price * laceQuantity;
+      state.invoiceItems.push({
+        type: 'lace',
+        name: `${lace.name} Lace`,
+        price: lace.price,
+        quantity: laceQuantity,
+        total: laceTotal
+      });
+    }
+  }
 
-  state.invoiceItems.push({
-    type: 'brooch',
-    name: brooch.name,
-    price: brooch.price,
-    quantity: quantity,
-    total: total
-  });
+  // Add Extra Charge (if selected)
+  if (extraChargeId) {
+    const extra = state.extraCharges.find(e => e.id == extraChargeId);
+    if (extra) {
+      state.invoiceItems.push({
+        type: 'extra',
+        name: extra.name,
+        price: extra.price,
+        quantity: 1,
+        total: extra.price
+      });
+    }
+  }
 
   renderInvoiceItems();
-  showStatus('Brooch added to invoice', 'success');
+  saveInvoiceToLocalStorage();
+  showStatus('Invoice calculated successfully!', 'success');
+});
 
-  // Reset fields
+// ==================== CLEAR INVOICE BUTTON ====================
+document.getElementById('clear-invoice-btn')?.addEventListener('click', () => {
+  if (!confirm('Are you sure you want to clear all invoice data?')) return;
+
+  // Clear form fields
+  document.getElementById('customer-name').value = '';
+  document.getElementById('invoice-date').valueAsDate = new Date();
+  widthSelect.value = '';
+  fabricTypeSelect.value = '';
+  fabricTypeSelect.disabled = true;
+  setsInput.value = '';
+  setsInput.disabled = true;
+  metersInput.value = '';
   document.getElementById('brooch-category-invoice-select').value = '';
   document.getElementById('brooch-quantity').value = '';
-});
-
-document.getElementById('add-lace-btn')?.addEventListener('click', () => {
-  const laceId = document.getElementById('lace-category-invoice-select').value;
-  const quantity = parseInt(document.getElementById('lace-quantity').value);
-
-  if (!laceId || !quantity) {
-    showStatus('Please select lace category and quantity', 'error');
-    return;
-  }
-
-  const lace = state.laceCategories.find(l => l.id == laceId);
-  const total = lace.price * quantity;
-
-  state.invoiceItems.push({
-    type: 'lace',
-    name: lace.name,
-    price: lace.price,
-    quantity: quantity,
-    total: total
-  });
-
-  renderInvoiceItems();
-  showStatus('Lace added to invoice', 'success');
-
-  // Reset fields
   document.getElementById('lace-category-invoice-select').value = '';
   document.getElementById('lace-quantity').value = '';
-});
+  document.getElementById('extra-charge-invoice-select').value = '';
 
-// ==================== OTHER ITEMS ====================
-document.getElementById('add-other-item-btn').addEventListener('click', () => {
-  otherItemsCounter++;
-  const itemId = `other-item-${otherItemsCounter}`;
-
-  const itemDiv = document.createElement('div');
-  itemDiv.className = 'other-item-row';
-  itemDiv.id = itemId;
-  itemDiv.innerHTML = `
-    <div class="form-row" style="gap: 8px; align-items: flex-end;">
-      <div class="form-group" style="flex: 2;">
-        <label>Item Name</label>
-        <input type="text" class="other-item-name" placeholder="e.g., Thread, Button" required>
-      </div>
-      <div class="form-group" style="flex: 1;">
-        <label>Price/Unit (₹)</label>
-        <input type="number" class="other-item-price" placeholder="0.00" step="0.01" min="0" required>
-      </div>
-      <div class="form-group" style="flex: 1;">
-        <label>Quantity</label>
-        <input type="number" class="other-item-quantity" placeholder="1" min="1" value="1" required>
-      </div>
-      <button type="button" class="btn btn-success btn-sm" onclick="addOtherItemToInvoice('${itemId}')">Add</button>
-      <button type="button" class="btn btn-danger btn-sm" onclick="removeOtherItemInput('${itemId}')">×</button>
-    </div>
-  `;
-
-  otherItemsContainer.appendChild(itemDiv);
-});
-
-window.removeOtherItemInput = (itemId) => {
-  const itemDiv = document.getElementById(itemId);
-  if (itemDiv) {
-    itemDiv.remove();
-  }
-};
-
-window.addOtherItemToInvoice = (itemId) => {
-  const itemDiv = document.getElementById(itemId);
-  if (!itemDiv) return;
-
-  const name = itemDiv.querySelector('.other-item-name').value.trim();
-  const price = parseFloat(itemDiv.querySelector('.other-item-price').value);
-  const quantity = parseInt(itemDiv.querySelector('.other-item-quantity').value);
-
-  if (!name || !price || !quantity) {
-    showStatus('Please fill all other item fields', 'error');
-    return;
-  }
-
-  const total = price * quantity;
-
-  state.invoiceItems.push({
-    type: 'other',
-    name: name,
-    price: price,
-    quantity: quantity,
-    total: total
-  });
-
+  // Clear invoice items
+  state.invoiceItems = [];
   renderInvoiceItems();
-  showStatus('Other item added to invoice', 'success');
 
-  // Remove the input row after adding
-  itemDiv.remove();
-};
+  // Clear localStorage
+  localStorage.removeItem('invoiceData');
+
+  showStatus('Invoice form cleared', 'success');
+});
+
+// ==================== LOCALSTORAGE FUNCTIONS ====================
+function saveInvoiceToLocalStorage() {
+  const invoiceData = {
+    customerName: document.getElementById('customer-name').value,
+    invoiceDate: document.getElementById('invoice-date').value,
+    width: widthSelect.value,
+    fabricId: fabricTypeSelect.value,
+    sets: setsInput.value,
+    meters: metersInput.value,
+    broochId: document.getElementById('brooch-category-invoice-select').value,
+    broochQuantity: document.getElementById('brooch-quantity').value,
+    laceId: document.getElementById('lace-category-invoice-select').value,
+    laceQuantity: document.getElementById('lace-quantity').value,
+    extraChargeId: document.getElementById('extra-charge-invoice-select').value,
+    invoiceItems: state.invoiceItems
+  };
+  localStorage.setItem('invoiceData', JSON.stringify(invoiceData));
+}
+
+function loadInvoiceFromLocalStorage() {
+  const saved = localStorage.getItem('invoiceData');
+  if (!saved) return;
+
+  try {
+    const invoiceData = JSON.parse(saved);
+
+    // Restore form fields
+    if (invoiceData.customerName) document.getElementById('customer-name').value = invoiceData.customerName;
+    if (invoiceData.invoiceDate) document.getElementById('invoice-date').value = invoiceData.invoiceDate;
+    if (invoiceData.width) {
+      widthSelect.value = invoiceData.width;
+      widthSelect.dispatchEvent(new Event('change'));
+    }
+
+    // Wait a bit for fabric types to load, then restore selections
+    setTimeout(() => {
+      if (invoiceData.fabricId) fabricTypeSelect.value = invoiceData.fabricId;
+      if (invoiceData.sets) setsInput.value = invoiceData.sets;
+      if (invoiceData.meters) metersInput.value = invoiceData.meters;
+      if (invoiceData.broochId) document.getElementById('brooch-category-invoice-select').value = invoiceData.broochId;
+      if (invoiceData.broochQuantity) document.getElementById('brooch-quantity').value = invoiceData.broochQuantity;
+      if (invoiceData.laceId) document.getElementById('lace-category-invoice-select').value = invoiceData.laceId;
+      if (invoiceData.laceQuantity) document.getElementById('lace-quantity').value = invoiceData.laceQuantity;
+      if (invoiceData.extraChargeId) document.getElementById('extra-charge-invoice-select').value = invoiceData.extraChargeId;
+
+      // Restore invoice items
+      if (invoiceData.invoiceItems) {
+        state.invoiceItems = invoiceData.invoiceItems;
+        renderInvoiceItems();
+      }
+    }, 500);
+  } catch (error) {
+    console.error('Error loading from localStorage:', error);
+  }
+}
+
+// Save to localStorage on input changes
+document.getElementById('customer-name')?.addEventListener('input', saveInvoiceToLocalStorage);
+setsInput?.addEventListener('input', saveInvoiceToLocalStorage);
 
 function renderInvoiceItems() {
   const list = document.getElementById('invoice-items-list');
@@ -814,6 +1033,9 @@ async function init() {
 
   // Populate width dropdown from width rules
   populateWidthDropdown();
+
+  // Load saved invoice data from localStorage
+  loadInvoiceFromLocalStorage();
 }
 
 function populateWidthDropdown() {
