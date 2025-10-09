@@ -435,20 +435,43 @@ async function loadExtraCharges() {
     if (data.success) {
       state.extraCharges = data.data;
       renderExtraCharges();
-      populateExtraChargeSelect();
+      populateExtraChargeCheckboxes();
     }
   } catch (error) {
     console.error('Error loading extra charges:', error);
   }
 }
 
-function populateExtraChargeSelect() {
-  const select = document.getElementById('extra-charge-invoice-select');
-  if (select && state.extraCharges.length > 0) {
-    select.innerHTML = '<option value="">Select extra charge (optional)</option>' +
-      state.extraCharges.map(e => `<option value="${e.id}" data-price="${e.price}">${e.name} - ${formatCurrency(e.price)}</option>`).join('');
+function populateExtraChargeCheckboxes() {
+  const container = document.getElementById('extra-charges-checkboxes');
+  if (!container) return;
+
+  if (state.extraCharges.length === 0) {
+    container.innerHTML = '<p style="color: #666; font-size: 14px;">No extra charges available. Add some in the Extras page.</p>';
+    return;
   }
+
+  container.innerHTML = state.extraCharges.map(e => `
+    <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+      <input type="checkbox" class="extra-charge-checkbox" value="${e.id}" data-name="${e.name}" data-price="${e.price}">
+      ${e.name} - ${formatCurrency(e.price)}
+    </label>
+  `).join('');
 }
+
+// Handle custom charge checkbox toggle
+document.getElementById('custom-charge-checkbox')?.addEventListener('change', (e) => {
+  const customFields = document.getElementById('custom-charge-fields');
+  if (e.target.checked) {
+    customFields.style.display = 'block';
+  } else {
+    customFields.style.display = 'none';
+    // Clear custom fields
+    document.getElementById('custom-charge-name').value = '';
+    document.getElementById('custom-charge-price').value = '';
+    document.getElementById('custom-charge-quantity').value = '1';
+  }
+});
 
 function renderExtraCharges() {
   const list = document.getElementById('extra-charge-list');
@@ -746,7 +769,6 @@ document.getElementById('calculate-invoice-btn')?.addEventListener('click', () =
   const broochQuantity = parseInt(document.getElementById('brooch-quantity').value);
   const laceId = document.getElementById('lace-category-invoice-select').value;
   const laceQuantity = parseInt(document.getElementById('lace-quantity').value);
-  const extraChargeId = document.getElementById('extra-charge-invoice-select').value;
 
   // Clear existing items
   state.invoiceItems = [];
@@ -808,18 +830,39 @@ document.getElementById('calculate-invoice-btn')?.addEventListener('click', () =
     }
   }
 
-  // Add Extra Charge (if selected)
-  if (extraChargeId) {
-    const extra = state.extraCharges.find(e => e.id == extraChargeId);
-    if (extra) {
-      const extraPrice = parseFloat(extra.price);
+  // Add Extra Charges (multiple checkboxes)
+  const selectedExtraCharges = document.querySelectorAll('.extra-charge-checkbox:checked');
+  selectedExtraCharges.forEach(checkbox => {
+    const extraPrice = parseFloat(checkbox.dataset.price);
+    const extraName = checkbox.dataset.name;
+    state.invoiceItems.push({
+      type: 'extra',
+      name: extraName,
+      price: extraPrice,
+      quantity: 1,
+      total: extraPrice
+    });
+  });
+
+  // Add Custom Charge (if checkbox is checked)
+  const customChargeChecked = document.getElementById('custom-charge-checkbox').checked;
+  if (customChargeChecked) {
+    const customName = document.getElementById('custom-charge-name').value.trim();
+    const customPrice = parseFloat(document.getElementById('custom-charge-price').value);
+    const customQuantity = parseInt(document.getElementById('custom-charge-quantity').value) || 1;
+
+    if (customName && customPrice) {
+      const customTotal = customPrice * customQuantity;
       state.invoiceItems.push({
-        type: 'extra',
-        name: extra.name,
-        price: extraPrice,
-        quantity: 1,
-        total: extraPrice
+        type: 'custom',
+        name: customName,
+        price: customPrice,
+        quantity: customQuantity,
+        total: customTotal
       });
+    } else if (customName || customPrice) {
+      showStatus('Please fill both custom charge name and price', 'error');
+      return;
     }
   }
 
@@ -845,7 +888,16 @@ document.getElementById('clear-invoice-btn')?.addEventListener('click', () => {
   document.getElementById('brooch-quantity').value = '';
   document.getElementById('lace-category-invoice-select').value = '';
   document.getElementById('lace-quantity').value = '';
-  document.getElementById('extra-charge-invoice-select').value = '';
+
+  // Clear extra charge checkboxes
+  document.querySelectorAll('.extra-charge-checkbox').forEach(cb => cb.checked = false);
+
+  // Clear custom charge
+  document.getElementById('custom-charge-checkbox').checked = false;
+  document.getElementById('custom-charge-fields').style.display = 'none';
+  document.getElementById('custom-charge-name').value = '';
+  document.getElementById('custom-charge-price').value = '';
+  document.getElementById('custom-charge-quantity').value = '1';
 
   // Clear invoice items
   state.invoiceItems = [];
