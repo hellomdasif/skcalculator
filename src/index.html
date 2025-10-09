@@ -19,8 +19,9 @@
       <button class="nav-btn active" data-page="invoice">Invoice</button>
       <button class="nav-btn" data-page="fabrics">Fabrics</button>
       <button class="nav-btn" data-page="brooches">Brooches</button>
-      <button class="nav-btn" data-page="width-categories">Widths</button>
-      <button class="nav-btn" data-page="width-rules">Width Rules</button>
+      <button class="nav-btn" data-page="laces">Laces</button>
+      <button class="nav-btn" data-page="extras">Extras</button>
+      <button class="nav-btn" data-page="width-rules">Rules</button>
     </nav>
 
     <!-- Main Container -->
@@ -61,8 +62,8 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label>Sets (even numbers only)</label>
-              <input type="number" id="fabric-sets-input" min="2" step="2" placeholder="Enter even number (2, 4, 6...)" disabled>
+              <label>Sets</label>
+              <input type="number" id="fabric-sets-input" min="1" placeholder="Enter number of sets" disabled>
             </div>
             <div class="form-group">
               <label>Meters (auto-calculated)</label>
@@ -149,15 +150,36 @@
         </section>
       </div>
 
-      <!-- Brooch Types Management Page -->
+      <!-- Brooch Management Page -->
       <div class="page" id="brooches-page">
         <section class="card">
-          <h2>Manage Brooch Types</h2>
-
-          <form id="brooch-form" class="form">
+          <h2>Manage Brooch Categories</h2>
+          <form id="brooch-category-form" class="form">
             <div class="form-group">
-              <label>Brooch Name</label>
-              <input type="text" id="brooch-name" placeholder="e.g., Small Brooch" required>
+              <label>Category Name</label>
+              <input type="text" id="brooch-category-name" placeholder="e.g., Heavy, Light" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Category</button>
+          </form>
+          <div id="brooch-category-list" class="items-list">
+            <div class="loading">Loading...</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Manage Brooch Types</h2>
+          <form id="brooch-form" class="form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Category</label>
+                <select id="brooch-category-select" required>
+                  <option value="">Select category</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Brooch Name</label>
+                <input type="text" id="brooch-name" placeholder="e.g., Gold Brooch" required>
+              </div>
             </div>
             <div class="form-group">
               <label>Price (₹)</label>
@@ -165,28 +187,74 @@
             </div>
             <button type="submit" class="btn btn-primary">Add Brooch Type</button>
           </form>
-
           <div id="brooch-list" class="items-list">
             <div class="loading">Loading...</div>
           </div>
         </section>
       </div>
 
-      <!-- Width Categories Management Page -->
-      <div class="page" id="width-categories-page">
+      <!-- Lace Management Page -->
+      <div class="page" id="laces-page">
         <section class="card">
-          <h2>Manage Width Categories</h2>
-          <p class="help-text">Add available fabric widths (e.g., 44, 60, 72)</p>
-
-          <form id="width-category-form" class="form">
+          <h2>Manage Lace Categories</h2>
+          <form id="lace-category-form" class="form">
             <div class="form-group">
-              <label>Width (inches/cm)</label>
-              <input type="text" id="width-category-width" placeholder="e.g., 44, 60, 72" required>
+              <label>Category Name</label>
+              <input type="text" id="lace-category-name" placeholder="e.g., V Heavy, Heavy, Light" required>
             </div>
-            <button type="submit" class="btn btn-primary">Add Width Category</button>
+            <button type="submit" class="btn btn-primary">Add Category</button>
           </form>
+          <div id="lace-category-list" class="items-list">
+            <div class="loading">Loading...</div>
+          </div>
+        </section>
 
-          <div id="width-category-list" class="items-list">
+        <section class="card">
+          <h2>Manage Lace Types</h2>
+          <form id="lace-form" class="form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Category</label>
+                <select id="lace-category-select" required>
+                  <option value="">Select category</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Lace Name</label>
+                <input type="text" id="lace-name" placeholder="e.g., Gold Lace" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Price (₹)</label>
+              <input type="number" id="lace-price" placeholder="0.00" step="0.01" min="0" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Lace Type</button>
+          </form>
+          <div id="lace-list" class="items-list">
+            <div class="loading">Loading...</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Extra Charges Management Page -->
+      <div class="page" id="extras-page">
+        <section class="card">
+          <h2>Manage Extra Charges</h2>
+          <p class="help-text">Add charges like Foam, Paper, Making Charge, etc.</p>
+          <form id="extra-charge-form" class="form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Charge Name</label>
+                <input type="text" id="extra-charge-name" placeholder="e.g., Foam, Paper" required>
+              </div>
+              <div class="form-group">
+                <label>Price (₹)</label>
+                <input type="number" id="extra-charge-price" placeholder="0.00" step="0.01" min="0" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Extra Charge</button>
+          </form>
+          <div id="extra-charge-list" class="items-list">
             <div class="loading">Loading...</div>
           </div>
         </section>
@@ -202,17 +270,21 @@
             <div class="form-row">
               <div class="form-group">
                 <label>Width</label>
-                <select id="width-rule-width" required>
-                  <option value="">Select width</option>
-                </select>
+                <input type="number" id="width-rule-width" placeholder="e.g., 44, 60" required>
               </div>
               <div class="form-group">
-                <label>Sets (even number)</label>
-                <input type="number" id="width-rule-sets" placeholder="2" step="2" min="2" required>
+                <label>Base Sets</label>
+                <input type="number" id="width-rule-sets" placeholder="3" min="1" required>
               </div>
+            </div>
+            <div class="form-row">
               <div class="form-group">
                 <label>Meters</label>
-                <input type="number" id="width-rule-meters" placeholder="0.0" step="0.1" min="0" required>
+                <input type="number" id="width-rule-meters" placeholder="5.5" step="0.1" min="0" required>
+              </div>
+              <div class="form-group">
+                <label>Lace Rolls</label>
+                <input type="number" id="width-rule-lace" placeholder="2" min="0" required>
               </div>
             </div>
             <button type="submit" class="btn btn-primary">Add Width Rule</button>
