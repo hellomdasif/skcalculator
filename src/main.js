@@ -5,9 +5,7 @@ const API_BASE = import.meta.env.DEV ? '/.netlify/functions' : '/api';
 const state = {
   fabricTypes: [],
   broochCategories: [],
-  broochTypes: [],
   laceCategories: [],
-  laceTypes: [],
   extraCharges: [],
   widthRules: [],
   invoiceItems: [],
@@ -72,6 +70,7 @@ function renderBroochCategories() {
     <div class="item-card">
       <div class="item-info">
         <div class="item-name">${c.name}</div>
+        <div class="item-price">${formatCurrency(c.price)}</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="deleteBroochCategory(${c.id})">Delete</button>
     </div>
@@ -79,24 +78,31 @@ function renderBroochCategories() {
 }
 
 function populateBroochCategorySelects() {
-  const select = document.getElementById('brooch-category-select');
+  const select = document.getElementById('brooch-category-invoice-select');
   if (select) {
     select.innerHTML = '<option value="">Select category</option>' +
-      state.broochCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      state.broochCategories.map(c => `<option value="${c.id}" data-price="${c.price}">${c.name} - ${formatCurrency(c.price)}</option>`).join('');
   }
 }
 
 document.getElementById('brooch-category-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('brooch-category-name').value.trim();
+  const price = parseFloat(document.getElementById('brooch-category-price').value);
+
+  if (!price) {
+    showStatus('Please enter a price', 'error');
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/brooch-categories`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name, price })
     });
     if ((await res.json()).success) {
-      showStatus('Category added!', 'success');
+      showStatus('Brooch category added!', 'success');
       document.getElementById('brooch-category-form').reset();
       await loadBroochCategories();
     }
@@ -148,6 +154,7 @@ function renderLaceCategories() {
     <div class="item-card">
       <div class="item-info">
         <div class="item-name">${c.name}</div>
+        <div class="item-price">${formatCurrency(c.price)}</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="deleteLaceCategory(${c.id})">Delete</button>
     </div>
@@ -155,24 +162,31 @@ function renderLaceCategories() {
 }
 
 function populateLaceCategorySelects() {
-  const select = document.getElementById('lace-category-select');
+  const select = document.getElementById('lace-category-invoice-select');
   if (select) {
     select.innerHTML = '<option value="">Select category</option>' +
-      state.laceCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      state.laceCategories.map(c => `<option value="${c.id}" data-price="${c.price}">${c.name} - ${formatCurrency(c.price)}</option>`).join('');
   }
 }
 
 document.getElementById('lace-category-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('lace-category-name').value.trim();
+  const price = parseFloat(document.getElementById('lace-category-price').value);
+
+  if (!price) {
+    showStatus('Please enter a price', 'error');
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/lace-categories`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ name, price })
     });
     if ((await res.json()).success) {
-      showStatus('Category added!', 'success');
+      showStatus('Lace category added!', 'success');
       document.getElementById('lace-category-form').reset();
       await loadLaceCategories();
     }
@@ -291,167 +305,6 @@ window.deleteFabricType = async (id) => {
   }
 };
 
-// ==================== BROOCH TYPES ====================
-async function loadBroochTypes() {
-  try {
-    const res = await fetch(`${API_BASE}/brooch-types`);
-    const data = await res.json();
-    if (data.success) {
-      state.broochTypes = data.data;
-      renderBroochTypes();
-      populateBroochSelect();
-    }
-  } catch (error) {
-    console.error('Error loading brooch types:', error);
-  }
-}
-
-function renderBroochTypes() {
-  const list = document.getElementById('brooch-list');
-  if (!list) return;
-  if (state.broochTypes.length === 0) {
-    list.innerHTML = '<div class="empty-state">No brooch types yet</div>';
-    return;
-  }
-  list.innerHTML = state.broochTypes.map(b => `
-    <div class="item-card">
-      <div class="item-info">
-        <div class="item-name">${b.name} <span style="color: #666;">(${b.category_name})</span></div>
-        <div class="item-price">${formatCurrency(b.price)}</div>
-      </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteBroochType(${b.id})">Delete</button>
-    </div>
-  `).join('');
-}
-
-function populateBroochSelect() {
-  const select = document.getElementById('brooch-type-select');
-  if (!select) return;
-  select.innerHTML = '<option value="">Select brooch type</option>' +
-    state.broochTypes.map(b =>
-      `<option value="${b.id}" data-price="${b.price}">${b.name} - ${formatCurrency(b.price)}</option>`
-    ).join('');
-}
-
-document.getElementById('brooch-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const category_id = document.getElementById('brooch-category-select').value;
-  const name = document.getElementById('brooch-name').value.trim();
-  const price = parseFloat(document.getElementById('brooch-price').value);
-
-  if (!category_id) {
-    showStatus('Please select a category', 'error');
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/brooch-types`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category_id, name, price })
-    });
-    if ((await res.json()).success) {
-      showStatus('Brooch type added!', 'success');
-      document.getElementById('brooch-form').reset();
-      await loadBroochTypes();
-    }
-  } catch (error) {
-    showStatus('Error adding brooch type', 'error');
-  }
-});
-
-window.deleteBroochType = async (id) => {
-  if (!confirm('Delete this brooch type?')) return;
-  try {
-    const res = await fetch(`${API_BASE}/brooch-types`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    if ((await res.json()).success) {
-      showStatus('Brooch type deleted', 'success');
-      await loadBroochTypes();
-    }
-  } catch (error) {
-    showStatus('Error deleting brooch type', 'error');
-  }
-};
-
-// ==================== LACE TYPES ====================
-async function loadLaceTypes() {
-  try {
-    const res = await fetch(`${API_BASE}/lace-types`);
-    const data = await res.json();
-    if (data.success) {
-      state.laceTypes = data.data;
-      renderLaceTypes();
-    }
-  } catch (error) {
-    console.error('Error loading lace types:', error);
-  }
-}
-
-function renderLaceTypes() {
-  const list = document.getElementById('lace-list');
-  if (!list) return;
-  if (state.laceTypes.length === 0) {
-    list.innerHTML = '<div class="empty-state">No lace types yet</div>';
-    return;
-  }
-  list.innerHTML = state.laceTypes.map(l => `
-    <div class="item-card">
-      <div class="item-info">
-        <div class="item-name">${l.name} <span style="color: #666;">(${l.category_name})</span></div>
-        <div class="item-price">${formatCurrency(l.price)}</div>
-      </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteLaceType(${l.id})">Delete</button>
-    </div>
-  `).join('');
-}
-
-document.getElementById('lace-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const category_id = document.getElementById('lace-category-select').value;
-  const name = document.getElementById('lace-name').value.trim();
-  const price = parseFloat(document.getElementById('lace-price').value);
-
-  if (!category_id) {
-    showStatus('Please select a category', 'error');
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/lace-types`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ category_id, name, price })
-    });
-    if ((await res.json()).success) {
-      showStatus('Lace type added!', 'success');
-      document.getElementById('lace-form').reset();
-      await loadLaceTypes();
-    }
-  } catch (error) {
-    showStatus('Error adding lace type', 'error');
-  }
-});
-
-window.deleteLaceType = async (id) => {
-  if (!confirm('Delete this lace type?')) return;
-  try {
-    const res = await fetch(`${API_BASE}/lace-types`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    if ((await res.json()).success) {
-      showStatus('Lace type deleted', 'success');
-      await loadLaceTypes();
-    }
-  } catch (error) {
-    showStatus('Error deleting lace type', 'error');
-  }
-};
 
 // ==================== EXTRA CHARGES ====================
 async function loadExtraCharges() {
@@ -651,6 +504,9 @@ setsInput.addEventListener('input', () => {
 
   if (!width || !sets) {
     metersInput.value = '';
+    // Clear brooch and lace quantities
+    document.getElementById('brooch-quantity').value = '';
+    document.getElementById('lace-quantity').value = '';
     return;
   }
 
@@ -659,6 +515,8 @@ setsInput.addEventListener('input', () => {
 
   if (!baseRule) {
     metersInput.value = 'Error: No rule for this width';
+    document.getElementById('brooch-quantity').value = '';
+    document.getElementById('lace-quantity').value = '';
     return;
   }
 
@@ -667,6 +525,13 @@ setsInput.addEventListener('input', () => {
   const calculatedMeters = metersPerSet * sets;
 
   metersInput.value = calculatedMeters.toFixed(1);
+
+  // Auto-populate brooch quantity (equals sets)
+  document.getElementById('brooch-quantity').value = sets;
+
+  // Auto-calculate lace quantity: (sets / base_sets) * base_lace_rolls
+  const laceQuantity = (sets / baseRule.sets) * baseRule.lace_rolls;
+  document.getElementById('lace-quantity').value = Math.round(laceQuantity);
 });
 
 document.getElementById('add-fabric-btn')?.addEventListener('click', async () => {
@@ -703,18 +568,18 @@ document.getElementById('add-fabric-btn')?.addEventListener('click', async () =>
   metersInput.value = '';
 });
 
-document.getElementById('add-brooch-btn').addEventListener('click', () => {
-  const broochId = document.getElementById('brooch-type-select').value;
+document.getElementById('add-brooch-btn')?.addEventListener('click', () => {
+  const broochId = document.getElementById('brooch-category-invoice-select').value;
   const quantity = parseInt(document.getElementById('brooch-quantity').value);
-  
+
   if (!broochId || !quantity) {
-    showStatus('Please select brooch and quantity', 'error');
+    showStatus('Please select brooch category and quantity', 'error');
     return;
   }
-  
-  const brooch = state.broochTypes.find(b => b.id == broochId);
+
+  const brooch = state.broochCategories.find(b => b.id == broochId);
   const total = brooch.price * quantity;
-  
+
   state.invoiceItems.push({
     type: 'brooch',
     name: brooch.name,
@@ -722,9 +587,41 @@ document.getElementById('add-brooch-btn').addEventListener('click', () => {
     quantity: quantity,
     total: total
   });
-  
+
   renderInvoiceItems();
   showStatus('Brooch added to invoice', 'success');
+
+  // Reset fields
+  document.getElementById('brooch-category-invoice-select').value = '';
+  document.getElementById('brooch-quantity').value = '';
+});
+
+document.getElementById('add-lace-btn')?.addEventListener('click', () => {
+  const laceId = document.getElementById('lace-category-invoice-select').value;
+  const quantity = parseInt(document.getElementById('lace-quantity').value);
+
+  if (!laceId || !quantity) {
+    showStatus('Please select lace category and quantity', 'error');
+    return;
+  }
+
+  const lace = state.laceCategories.find(l => l.id == laceId);
+  const total = lace.price * quantity;
+
+  state.invoiceItems.push({
+    type: 'lace',
+    name: lace.name,
+    price: lace.price,
+    quantity: quantity,
+    total: total
+  });
+
+  renderInvoiceItems();
+  showStatus('Lace added to invoice', 'success');
+
+  // Reset fields
+  document.getElementById('lace-category-invoice-select').value = '';
+  document.getElementById('lace-quantity').value = '';
 });
 
 // ==================== OTHER ITEMS ====================
@@ -910,12 +807,29 @@ async function init() {
   await Promise.all([
     loadFabricTypes(),
     loadBroochCategories(),
-    loadBroochTypes(),
     loadLaceCategories(),
-    loadLaceTypes(),
     loadExtraCharges(),
     loadWidthRules()
   ]);
+
+  // Populate width dropdown from width rules
+  populateWidthDropdown();
+}
+
+function populateWidthDropdown() {
+  // Populate invoice page width dropdown
+  const widthSelectInvoice = document.getElementById('fabric-width-select');
+  if (widthSelectInvoice && state.widthRules.length > 0) {
+    widthSelectInvoice.innerHTML = '<option value="">Select width</option>' +
+      state.widthRules.map(r => `<option value="${r.width}">${r.width}</option>`).join('');
+  }
+
+  // Populate fabrics page width dropdown
+  const widthSelectFabric = document.getElementById('fabric-width');
+  if (widthSelectFabric && state.widthRules.length > 0) {
+    widthSelectFabric.innerHTML = '<option value="">Select width</option>' +
+      state.widthRules.map(r => `<option value="${r.width}">${r.width}</option>`).join('');
+  }
 }
 
 init();
