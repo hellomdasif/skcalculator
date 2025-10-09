@@ -4,9 +4,12 @@ const API_BASE = import.meta.env.DEV ? '/.netlify/functions' : '/api';
 // Global State
 const state = {
   fabricTypes: [],
+  broochCategories: [],
   broochTypes: [],
+  laceCategories: [],
+  laceTypes: [],
+  extraCharges: [],
   widthRules: [],
-  widthCategories: [],
   invoiceItems: [],
   currentPage: 'invoice'
 };
@@ -43,104 +46,155 @@ function switchPage(pageName) {
   state.currentPage = pageName;
 }
 
-// ==================== WIDTH CATEGORIES ====================
-async function loadWidthCategories() {
+// ==================== BROOCH CATEGORIES ====================
+async function loadBroochCategories() {
   try {
-    const res = await fetch(`${API_BASE}/width-categories`);
+    const res = await fetch(`${API_BASE}/brooch-categories`);
     const data = await res.json();
     if (data.success) {
-      state.widthCategories = data.data;
-      populateWidthSelects();
-      renderWidthCategories();
+      state.broochCategories = data.data;
+      renderBroochCategories();
+      populateBroochCategorySelects();
     }
   } catch (error) {
-    console.error('Error loading width categories:', error);
-    showStatus('Error loading width categories', 'error');
+    console.error('Error loading brooch categories:', error);
   }
 }
 
-function populateWidthSelects() {
-  // Populate width select in fabric form
-  const fabricWidthSelect = document.getElementById('fabric-width');
-  if (fabricWidthSelect) {
-    fabricWidthSelect.innerHTML = '<option value="">Select width</option>' +
-      state.widthCategories.map(w =>
-        `<option value="${w.width}">${w.width}</option>`
-      ).join('');
-  }
-
-  // Populate width select in invoice page
-  const invoiceWidthSelect = document.getElementById('fabric-width-select');
-  if (invoiceWidthSelect) {
-    invoiceWidthSelect.innerHTML = '<option value="">Select width</option>' +
-      state.widthCategories.map(w =>
-        `<option value="${w.width}">${w.width}</option>`
-      ).join('');
-  }
-
-  // Populate width select in width rules form
-  const widthRuleWidthSelect = document.getElementById('width-rule-width');
-  if (widthRuleWidthSelect) {
-    widthRuleWidthSelect.innerHTML = '<option value="">Select width</option>' +
-      state.widthCategories.map(w =>
-        `<option value="${w.width}">${w.width}</option>`
-      ).join('');
-  }
-}
-
-function renderWidthCategories() {
-  const list = document.getElementById('width-category-list');
-  if (state.widthCategories.length === 0) {
-    list.innerHTML = '<div class="empty-state">No width categories yet</div>';
+function renderBroochCategories() {
+  const list = document.getElementById('brooch-category-list');
+  if (!list) return;
+  if (state.broochCategories.length === 0) {
+    list.innerHTML = '<div class="empty-state">No categories yet</div>';
     return;
   }
-
-  list.innerHTML = state.widthCategories.map(w => `
+  list.innerHTML = state.broochCategories.map(c => `
     <div class="item-card">
       <div class="item-info">
-        <div class="item-name">Width ${w.width}</div>
+        <div class="item-name">${c.name}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteWidthCategory(${w.id})">Delete</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteBroochCategory(${c.id})">Delete</button>
     </div>
   `).join('');
 }
 
-document.getElementById('width-category-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const width = document.getElementById('width-category-width').value.trim();
+function populateBroochCategorySelects() {
+  const select = document.getElementById('brooch-category-select');
+  if (select) {
+    select.innerHTML = '<option value="">Select category</option>' +
+      state.broochCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+}
 
+document.getElementById('brooch-category-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('brooch-category-name').value.trim();
   try {
-    const res = await fetch(`${API_BASE}/width-categories`, {
+    const res = await fetch(`${API_BASE}/brooch-categories`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ width })
+      body: JSON.stringify({ name })
     });
     if ((await res.json()).success) {
-      showStatus('Width category added!', 'success');
-      document.getElementById('width-category-form').reset();
-      await loadWidthCategories();
-      renderWidthCategories();
+      showStatus('Category added!', 'success');
+      document.getElementById('brooch-category-form').reset();
+      await loadBroochCategories();
     }
   } catch (error) {
-    showStatus('Error adding width category', 'error');
+    showStatus('Error adding category', 'error');
   }
 });
 
-window.deleteWidthCategory = async (id) => {
-  if (!confirm('Delete this width category?')) return;
+window.deleteBroochCategory = async (id) => {
+  if (!confirm('Delete this category?')) return;
   try {
-    const res = await fetch(`${API_BASE}/width-categories`, {
+    const res = await fetch(`${API_BASE}/brooch-categories`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
     });
     if ((await res.json()).success) {
-      showStatus('Width category deleted', 'success');
-      await loadWidthCategories();
-      renderWidthCategories();
+      showStatus('Category deleted', 'success');
+      await loadBroochCategories();
     }
   } catch (error) {
-    showStatus('Error deleting width category', 'error');
+    showStatus('Error deleting category', 'error');
+  }
+};
+
+// ==================== LACE CATEGORIES ====================
+async function loadLaceCategories() {
+  try {
+    const res = await fetch(`${API_BASE}/lace-categories`);
+    const data = await res.json();
+    if (data.success) {
+      state.laceCategories = data.data;
+      renderLaceCategories();
+      populateLaceCategorySelects();
+    }
+  } catch (error) {
+    console.error('Error loading lace categories:', error);
+  }
+}
+
+function renderLaceCategories() {
+  const list = document.getElementById('lace-category-list');
+  if (!list) return;
+  if (state.laceCategories.length === 0) {
+    list.innerHTML = '<div class="empty-state">No categories yet</div>';
+    return;
+  }
+  list.innerHTML = state.laceCategories.map(c => `
+    <div class="item-card">
+      <div class="item-info">
+        <div class="item-name">${c.name}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteLaceCategory(${c.id})">Delete</button>
+    </div>
+  `).join('');
+}
+
+function populateLaceCategorySelects() {
+  const select = document.getElementById('lace-category-select');
+  if (select) {
+    select.innerHTML = '<option value="">Select category</option>' +
+      state.laceCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+}
+
+document.getElementById('lace-category-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('lace-category-name').value.trim();
+  try {
+    const res = await fetch(`${API_BASE}/lace-categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    if ((await res.json()).success) {
+      showStatus('Category added!', 'success');
+      document.getElementById('lace-category-form').reset();
+      await loadLaceCategories();
+    }
+  } catch (error) {
+    showStatus('Error adding category', 'error');
+  }
+});
+
+window.deleteLaceCategory = async (id) => {
+  if (!confirm('Delete this category?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/lace-categories`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if ((await res.json()).success) {
+      showStatus('Category deleted', 'success');
+      await loadLaceCategories();
+    }
+  } catch (error) {
+    showStatus('Error deleting category', 'error');
   }
 };
 
@@ -254,15 +308,15 @@ async function loadBroochTypes() {
 
 function renderBroochTypes() {
   const list = document.getElementById('brooch-list');
+  if (!list) return;
   if (state.broochTypes.length === 0) {
     list.innerHTML = '<div class="empty-state">No brooch types yet</div>';
     return;
   }
-  
   list.innerHTML = state.broochTypes.map(b => `
     <div class="item-card">
       <div class="item-info">
-        <div class="item-name">${b.name}</div>
+        <div class="item-name">${b.name} <span style="color: #666;">(${b.category_name})</span></div>
         <div class="item-price">${formatCurrency(b.price)}</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="deleteBroochType(${b.id})">Delete</button>
@@ -272,22 +326,29 @@ function renderBroochTypes() {
 
 function populateBroochSelect() {
   const select = document.getElementById('brooch-type-select');
+  if (!select) return;
   select.innerHTML = '<option value="">Select brooch type</option>' +
-    state.broochTypes.map(b => 
+    state.broochTypes.map(b =>
       `<option value="${b.id}" data-price="${b.price}">${b.name} - ${formatCurrency(b.price)}</option>`
     ).join('');
 }
 
-document.getElementById('brooch-form').addEventListener('submit', async (e) => {
+document.getElementById('brooch-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  const category_id = document.getElementById('brooch-category-select').value;
   const name = document.getElementById('brooch-name').value.trim();
   const price = parseFloat(document.getElementById('brooch-price').value);
-  
+
+  if (!category_id) {
+    showStatus('Please select a category', 'error');
+    return;
+  }
+
   try {
     const res = await fetch(`${API_BASE}/brooch-types`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, price })
+      body: JSON.stringify({ category_id, name, price })
     });
     if ((await res.json()).success) {
       showStatus('Brooch type added!', 'success');
@@ -316,6 +377,152 @@ window.deleteBroochType = async (id) => {
   }
 };
 
+// ==================== LACE TYPES ====================
+async function loadLaceTypes() {
+  try {
+    const res = await fetch(`${API_BASE}/lace-types`);
+    const data = await res.json();
+    if (data.success) {
+      state.laceTypes = data.data;
+      renderLaceTypes();
+    }
+  } catch (error) {
+    console.error('Error loading lace types:', error);
+  }
+}
+
+function renderLaceTypes() {
+  const list = document.getElementById('lace-list');
+  if (!list) return;
+  if (state.laceTypes.length === 0) {
+    list.innerHTML = '<div class="empty-state">No lace types yet</div>';
+    return;
+  }
+  list.innerHTML = state.laceTypes.map(l => `
+    <div class="item-card">
+      <div class="item-info">
+        <div class="item-name">${l.name} <span style="color: #666;">(${l.category_name})</span></div>
+        <div class="item-price">${formatCurrency(l.price)}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteLaceType(${l.id})">Delete</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('lace-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const category_id = document.getElementById('lace-category-select').value;
+  const name = document.getElementById('lace-name').value.trim();
+  const price = parseFloat(document.getElementById('lace-price').value);
+
+  if (!category_id) {
+    showStatus('Please select a category', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/lace-types`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category_id, name, price })
+    });
+    if ((await res.json()).success) {
+      showStatus('Lace type added!', 'success');
+      document.getElementById('lace-form').reset();
+      await loadLaceTypes();
+    }
+  } catch (error) {
+    showStatus('Error adding lace type', 'error');
+  }
+});
+
+window.deleteLaceType = async (id) => {
+  if (!confirm('Delete this lace type?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/lace-types`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if ((await res.json()).success) {
+      showStatus('Lace type deleted', 'success');
+      await loadLaceTypes();
+    }
+  } catch (error) {
+    showStatus('Error deleting lace type', 'error');
+  }
+};
+
+// ==================== EXTRA CHARGES ====================
+async function loadExtraCharges() {
+  try {
+    const res = await fetch(`${API_BASE}/extra-charges`);
+    const data = await res.json();
+    if (data.success) {
+      state.extraCharges = data.data;
+      renderExtraCharges();
+    }
+  } catch (error) {
+    console.error('Error loading extra charges:', error);
+  }
+}
+
+function renderExtraCharges() {
+  const list = document.getElementById('extra-charge-list');
+  if (!list) return;
+  if (state.extraCharges.length === 0) {
+    list.innerHTML = '<div class="empty-state">No extra charges yet</div>';
+    return;
+  }
+  list.innerHTML = state.extraCharges.map(e => `
+    <div class="item-card">
+      <div class="item-info">
+        <div class="item-name">${e.name}</div>
+        <div class="item-price">${formatCurrency(e.price)}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteExtraCharge(${e.id})">Delete</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('extra-charge-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('extra-charge-name').value.trim();
+  const price = parseFloat(document.getElementById('extra-charge-price').value);
+
+  try {
+    const res = await fetch(`${API_BASE}/extra-charges`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, price })
+    });
+    if ((await res.json()).success) {
+      showStatus('Extra charge added!', 'success');
+      document.getElementById('extra-charge-form').reset();
+      await loadExtraCharges();
+    }
+  } catch (error) {
+    showStatus('Error adding extra charge', 'error');
+  }
+});
+
+window.deleteExtraCharge = async (id) => {
+  if (!confirm('Delete this extra charge?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/extra-charges`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
+    if ((await res.json()).success) {
+      showStatus('Extra charge deleted', 'success');
+      await loadExtraCharges();
+    }
+  } catch (error) {
+    showStatus('Error deleting extra charge', 'error');
+  }
+};
+
 // ==================== WIDTH RULES ====================
 async function loadWidthRules() {
   try {
@@ -332,38 +539,34 @@ async function loadWidthRules() {
 
 function renderWidthRules() {
   const list = document.getElementById('width-rule-list');
+  if (!list) return;
   if (state.widthRules.length === 0) {
     list.innerHTML = '<div class="empty-state">No width rules yet</div>';
     return;
   }
-  
+
   list.innerHTML = state.widthRules.map(r => `
     <div class="item-card">
       <div class="item-info">
-        <div class="item-name">Width ${r.width} | ${r.sets} Sets</div>
-        <div class="item-price">${r.meters} meters</div>
+        <div class="item-name">Width ${r.width} | ${r.sets} Sets → ${r.meters}m, ${r.lace_rolls} lace</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="deleteWidthRule(${r.id})">Delete</button>
     </div>
   `).join('');
 }
 
-document.getElementById('width-rule-form').addEventListener('submit', async (e) => {
+document.getElementById('width-rule-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const width = parseInt(document.getElementById('width-rule-width').value);
   const sets = parseInt(document.getElementById('width-rule-sets').value);
   const meters = parseFloat(document.getElementById('width-rule-meters').value);
-  
-  if (sets % 2 !== 0) {
-    showStatus('Sets must be even number', 'error');
-    return;
-  }
-  
+  const lace_rolls = parseInt(document.getElementById('width-rule-lace').value);
+
   try {
     const res = await fetch(`${API_BASE}/width-rules`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ width, sets, meters })
+      body: JSON.stringify({ width, sets, meters, lace_rolls })
     });
     if ((await res.json()).success) {
       showStatus('Width rule added!', 'success');
@@ -451,28 +654,22 @@ setsInput.addEventListener('input', () => {
     return;
   }
 
-  // Validate even number
-  if (sets % 2 !== 0) {
-    metersInput.value = 'Error: Even numbers only';
-    return;
-  }
-
-  // Find base rule for this width (should be 2 sets)
-  const baseRule = state.widthRules.find(r => r.width == width && r.sets == 2);
+  // Find base rule for this width
+  const baseRule = state.widthRules.find(r => r.width == width);
 
   if (!baseRule) {
     metersInput.value = 'Error: No rule for this width';
     return;
   }
 
-  // Calculate meters: (meters for 2 sets / 2) * entered sets
-  const metersPerSet = parseFloat(baseRule.meters) / 2;
+  // Calculate meters: (meters for base sets / base sets) * entered sets
+  const metersPerSet = parseFloat(baseRule.meters) / baseRule.sets;
   const calculatedMeters = metersPerSet * sets;
 
   metersInput.value = calculatedMeters.toFixed(1);
 });
 
-document.getElementById('add-fabric-btn').addEventListener('click', async () => {
+document.getElementById('add-fabric-btn')?.addEventListener('click', async () => {
   const fabricId = fabricTypeSelect.value;
   const width = widthSelect.value;
   const sets = setsInput.value;
@@ -480,12 +677,6 @@ document.getElementById('add-fabric-btn').addEventListener('click', async () => 
 
   if (!fabricId || !width || !sets || !meters || meters.includes('Error')) {
     showStatus('Please fill all fabric fields correctly', 'error');
-    return;
-  }
-
-  // Validate even number
-  if (parseInt(sets) % 2 !== 0) {
-    showStatus('Sets must be an even number', 'error');
     return;
   }
 
@@ -717,9 +908,12 @@ document.getElementById('invoice-date').valueAsDate = new Date();
 
 async function init() {
   await Promise.all([
-    loadWidthCategories(),
     loadFabricTypes(),
+    loadBroochCategories(),
     loadBroochTypes(),
+    loadLaceCategories(),
+    loadLaceTypes(),
+    loadExtraCharges(),
     loadWidthRules()
   ]);
 }
