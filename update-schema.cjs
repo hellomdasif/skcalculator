@@ -4,10 +4,10 @@ require('dotenv').config();
 
 async function updateSchema() {
   const connection = await mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
+    host: process.env.DB_HOST || '172.105.49.22',
+    user: process.env.DB_USER || 'dsfsdfds_sk',
+    password: process.env.DB_PASSWORD || 'Mdlove@123',
+    database: process.env.DB_NAME || 'dsfsdfds_sk'
   });
 
   try {

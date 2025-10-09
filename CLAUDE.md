@@ -13,8 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Remote Database Configuration
 
 - **Host**: 172.105.49.22
-- **Database**: dsfsdfds_n8n
-- **Username**: dsfsdfds_n8n
+- **Database**: dsfsdfds_sk
+- **Username**: dsfsdfds_sk
 - **Password**: Mdlove@123
 
 ## Database Schema
@@ -116,6 +116,6 @@ skcalculator/
 Set these in Netlify Dashboard (Site settings → Environment variables):
 
 - `DB_HOST`: 172.105.49.22
-- `DB_USER`: dsfsdfds_n8n
+- `DB_USER`: dsfsdfds_sk
 - `DB_PASSWORD`: Mdlove@123
-- `DB_NAME`: dsfsdfds_n8n
+- `DB_NAME`: dsfsdfds_sk
