@@ -32,6 +32,10 @@ function formatCurrency(amount) {
   return `₹${parseFloat(amount).toFixed(2)}`;
 }
 
+function formatCurrencyForPDF(amount) {
+  return `Rs. ${parseFloat(amount).toFixed(2)}`;
+}
+
 // Navigation
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -996,19 +1000,19 @@ document.getElementById('download-invoice-btn').addEventListener('click', async 
       }
       doc.text(item.name, 25, yPos);
       doc.text(item.quantity.toString(), 130, yPos, { align: 'center' });
-      doc.text(formatCurrency(item.total), 185, yPos, { align: 'right' });
+      doc.text(formatCurrencyForPDF(item.total), 185, yPos, { align: 'right' });
       yPos += 7;
     });
-    
+
     doc.setLineWidth(0.5);
     doc.line(20, yPos + 2, 190, yPos + 2);
     yPos += 10;
-    
-    const total = state.invoiceItems.reduce((sum, item) => sum + item.total, 0);
+
+    const total = state.invoiceItems.reduce((sum, item) => sum + parseFloat(item.total), 0);
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text('TOTAL:', 130, yPos);
-    doc.text(formatCurrency(total), 185, yPos, { align: 'right' });
+    doc.text(formatCurrencyForPDF(total), 185, yPos, { align: 'right' });
     
     doc.setFontSize(10);
     doc.setFont(undefined, 'italic');
