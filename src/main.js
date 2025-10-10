@@ -567,24 +567,51 @@ window.deleteExtraCharge = async (id) => {
 };
 
 // ==================== PROFIT SETTINGS ====================
-function loadProfitSettings() {
-  const saved = localStorage.getItem('profitSettings');
-  if (saved) {
-    try {
-      state.profitSettings = JSON.parse(saved);
+async function loadProfitSettings() {
+  try {
+    const res = await fetch(`${API_BASE}/profit-settings`);
+    const data = await res.json();
+    if (data.success) {
+      state.profitSettings = {
+        type: data.data.profit_type,
+        value: data.data.profit_value
+      };
       updateProfitDisplay();
-      // Populate form
-      document.getElementById('profit-type').value = state.profitSettings.type;
-      document.getElementById('profit-value').value = state.profitSettings.value;
-    } catch (error) {
-      console.error('Error loading profit settings:', error);
+      // Populate form if on profit settings page
+      const profitTypeEl = document.getElementById('profit-type');
+      const profitValueEl = document.getElementById('profit-value');
+      if (profitTypeEl && profitValueEl) {
+        profitTypeEl.value = state.profitSettings.type;
+        profitValueEl.value = state.profitSettings.value;
+      }
     }
+  } catch (error) {
+    console.error('Error loading profit settings:', error);
+    // Fallback to default
+    state.profitSettings = { type: 'none', value: 0 };
   }
 }
 
-function saveProfitSettings() {
-  localStorage.setItem('profitSettings', JSON.stringify(state.profitSettings));
-  updateProfitDisplay();
+async function saveProfitSettings() {
+  try {
+    const res = await fetch(`${API_BASE}/profit-settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profit_type: state.profitSettings.type,
+        profit_value: state.profitSettings.value
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      updateProfitDisplay();
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error saving profit settings:', error);
+    return false;
+  }
 }
 
 function updateProfitDisplay() {
@@ -600,14 +627,19 @@ function updateProfitDisplay() {
   }
 }
 
-document.getElementById('profit-settings-form')?.addEventListener('submit', (e) => {
+document.getElementById('profit-settings-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const type = document.getElementById('profit-type').value;
   const value = parseFloat(document.getElementById('profit-value').value) || 0;
 
   state.profitSettings = { type, value };
-  saveProfitSettings();
-  showStatus('Profit settings saved successfully!', 'success');
+  const success = await saveProfitSettings();
+
+  if (success) {
+    showStatus('Profit settings saved successfully!', 'success');
+  } else {
+    showStatus('Error saving profit settings', 'error');
+  }
 });
 
 // ==================== WIDTH RULES ====================
