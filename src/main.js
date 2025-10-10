@@ -11,6 +11,10 @@ const state = {
   invoiceItems: [],
   currentPage: 'invoice',
   numberOfSets: 0,
+  profitSettings: {
+    type: 'none',
+    value: 0
+  },
   // Edit state tracking
   editMode: {
     fabric: null,
@@ -31,10 +35,6 @@ function showStatus(message, type = 'success') {
 
 function formatCurrency(amount) {
   return `₹${parseFloat(amount).toFixed(2)}`;
-}
-
-function formatCurrencyForPDF(amount) {
-  return `Rs. ${parseFloat(amount).toFixed(2)}`;
 }
 
 // Navigation
@@ -566,6 +566,50 @@ window.deleteExtraCharge = async (id) => {
   }
 };
 
+// ==================== PROFIT SETTINGS ====================
+function loadProfitSettings() {
+  const saved = localStorage.getItem('profitSettings');
+  if (saved) {
+    try {
+      state.profitSettings = JSON.parse(saved);
+      updateProfitDisplay();
+      // Populate form
+      document.getElementById('profit-type').value = state.profitSettings.type;
+      document.getElementById('profit-value').value = state.profitSettings.value;
+    } catch (error) {
+      console.error('Error loading profit settings:', error);
+    }
+  }
+}
+
+function saveProfitSettings() {
+  localStorage.setItem('profitSettings', JSON.stringify(state.profitSettings));
+  updateProfitDisplay();
+}
+
+function updateProfitDisplay() {
+  const display = document.getElementById('profit-display');
+  if (!display) return;
+
+  if (state.profitSettings.type === 'none') {
+    display.textContent = 'No profit configured';
+  } else if (state.profitSettings.type === 'percentage') {
+    display.textContent = `Profit: ${state.profitSettings.value}% on per-set price`;
+  } else if (state.profitSettings.type === 'fixed') {
+    display.textContent = `Profit: ${formatCurrency(state.profitSettings.value)} per set`;
+  }
+}
+
+document.getElementById('profit-settings-form')?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const type = document.getElementById('profit-type').value;
+  const value = parseFloat(document.getElementById('profit-value').value) || 0;
+
+  state.profitSettings = { type, value };
+  saveProfitSettings();
+  showStatus('Profit settings saved successfully!', 'success');
+});
+
 // ==================== WIDTH RULES ====================
 async function loadWidthRules() {
   try {
@@ -907,11 +951,7 @@ document.getElementById('clear-invoice-btn')?.addEventListener('click', () => {
   document.getElementById('custom-charge-price').value = '';
   document.getElementById('custom-charge-quantity').value = '1';
 
-  // Clear profit settings
-  document.getElementById('profit-type').value = 'none';
-  document.getElementById('profit-value').value = '';
-
-  // Clear invoice items
+  // Clear invoice items (but keep profit settings)
   state.invoiceItems = [];
   state.numberOfSets = 0;
   renderInvoiceItems();
@@ -936,8 +976,6 @@ function saveInvoiceToLocalStorage() {
     laceId: document.getElementById('lace-category-invoice-select').value,
     laceQuantity: document.getElementById('lace-quantity').value,
     extraChargeId: document.getElementById('extra-charge-invoice-select').value,
-    profitType: document.getElementById('profit-type').value,
-    profitValue: document.getElementById('profit-value').value,
     invoiceItems: state.invoiceItems,
     numberOfSets: state.numberOfSets
   };
@@ -969,8 +1007,6 @@ function loadInvoiceFromLocalStorage() {
       if (invoiceData.laceId) document.getElementById('lace-category-invoice-select').value = invoiceData.laceId;
       if (invoiceData.laceQuantity) document.getElementById('lace-quantity').value = invoiceData.laceQuantity;
       if (invoiceData.extraChargeId) document.getElementById('extra-charge-invoice-select').value = invoiceData.extraChargeId;
-      if (invoiceData.profitType) document.getElementById('profit-type').value = invoiceData.profitType;
-      if (invoiceData.profitValue) document.getElementById('profit-value').value = invoiceData.profitValue;
 
       // Restore invoice items
       if (invoiceData.invoiceItems) {
@@ -994,7 +1030,7 @@ function renderInvoiceItems(numberOfSets = null) {
     list.innerHTML = '<div class="empty-state">No items added yet</div>';
     document.getElementById('invoice-total').textContent = '₹0.00';
     document.getElementById('per-set-display').style.display = 'none';
-    document.getElementById('final-total-display').style.display = 'none';
+    document.getElementById('total-sets-display').textContent = '0';
     return;
   }
 
@@ -1016,15 +1052,12 @@ function renderInvoiceItems(numberOfSets = null) {
   if (numberOfSets && numberOfSets > 0) {
     const perSetPrice = baseTotal / numberOfSets;
 
-    // Get profit settings
-    const profitType = document.getElementById('profit-type').value;
-    const profitValue = parseFloat(document.getElementById('profit-value').value) || 0;
-
+    // Get profit settings from state
     let profitAmount = 0;
-    if (profitType === 'percentage') {
-      profitAmount = (perSetPrice * profitValue) / 100;
-    } else if (profitType === 'fixed') {
-      profitAmount = profitValue;
+    if (state.profitSettings.type === 'percentage') {
+      profitAmount = (perSetPrice * state.profitSettings.value) / 100;
+    } else if (state.profitSettings.type === 'fixed') {
+      profitAmount = state.profitSettings.value;
     }
 
     // Add profit per set (hidden from invoice display)
@@ -1032,124 +1065,23 @@ function renderInvoiceItems(numberOfSets = null) {
     const finalTotal = perSetWithProfit * numberOfSets;
 
     // Display calculations
-    document.getElementById('per-set-total').textContent = formatCurrency(perSetPrice);
-    document.getElementById('per-set-display').style.display = 'flex';
     document.getElementById('total-sets-display').textContent = numberOfSets;
-    document.getElementById('final-invoice-total').textContent = formatCurrency(baseTotal);
-    document.getElementById('final-total-display').style.display = 'flex';
     document.getElementById('invoice-total').textContent = formatCurrency(finalTotal);
+    document.getElementById('per-set-total').textContent = formatCurrency(perSetWithProfit);
+    document.getElementById('per-set-display').style.display = 'flex';
   } else {
     // No per-set calculation
+    document.getElementById('total-sets-display').textContent = '0';
     document.getElementById('per-set-display').style.display = 'none';
-    document.getElementById('final-total-display').style.display = 'none';
     document.getElementById('invoice-total').textContent = formatCurrency(baseTotal);
   }
 }
 
 window.removeInvoiceItem = (idx) => {
   state.invoiceItems.splice(idx, 1);
-  renderInvoiceItems();
+  // Re-render with saved numberOfSets to maintain proper display
+  renderInvoiceItems(state.numberOfSets);
 };
-
-// PDF Download
-document.getElementById('download-invoice-btn').addEventListener('click', async () => {
-  const customerName = document.getElementById('customer-name').value.trim();
-  const invoiceDate = document.getElementById('invoice-date').value;
-  
-  if (!customerName) {
-    showStatus('Please enter customer name', 'error');
-    return;
-  }
-  
-  if (state.invoiceItems.length === 0) {
-    showStatus('Please add items to invoice', 'error');
-    return;
-  }
-  
-  try {
-    const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm');
-    const doc = new jsPDF();
-    
-    doc.setFontSize(24);
-    doc.setFont(undefined, 'bold');
-    doc.text('SK ENTERPRISE', 105, 20, { align: 'center' });
-    
-    doc.setFontSize(18);
-    doc.text('INVOICE', 105, 32, { align: 'center' });
-    
-    doc.setLineWidth(0.5);
-    doc.line(20, 38, 190, 38);
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Customer: ${customerName}`, 20, 48);
-    doc.text(`Date: ${invoiceDate || new Date().toISOString().split('T')[0]}`, 20, 55);
-    
-    const startY = 70;
-    doc.setFillColor(240, 240, 240);
-    doc.rect(20, startY - 6, 170, 8, 'F');
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text('Item', 25, startY);
-    doc.text('Qty', 130, startY, { align: 'center' });
-    doc.text('Total', 185, startY, { align: 'right' });
-    
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(10);
-    let yPos = startY + 10;
-    
-    state.invoiceItems.forEach((item, idx) => {
-      if (idx % 2 === 0) {
-        doc.setFillColor(250, 250, 250);
-        doc.rect(20, yPos - 5, 170, 7, 'F');
-      }
-      doc.text(item.name, 25, yPos);
-      doc.text(item.quantity.toString(), 130, yPos, { align: 'center' });
-      doc.text(formatCurrencyForPDF(item.total), 185, yPos, { align: 'right' });
-      yPos += 7;
-    });
-
-    doc.setLineWidth(0.5);
-    doc.line(20, yPos + 2, 190, yPos + 2);
-    yPos += 10;
-
-    // Calculate final total (with profit included, but profit not shown in PDF)
-    const baseTotal = state.invoiceItems.reduce((sum, item) => sum + parseFloat(item.total), 0);
-
-    let finalTotal = baseTotal;
-    if (state.numberOfSets && state.numberOfSets > 0) {
-      const perSetPrice = baseTotal / state.numberOfSets;
-      const profitType = document.getElementById('profit-type').value;
-      const profitValue = parseFloat(document.getElementById('profit-value').value) || 0;
-
-      let profitAmount = 0;
-      if (profitType === 'percentage') {
-        profitAmount = (perSetPrice * profitValue) / 100;
-      } else if (profitType === 'fixed') {
-        profitAmount = profitValue;
-      }
-
-      const perSetWithProfit = perSetPrice + profitAmount;
-      finalTotal = perSetWithProfit * state.numberOfSets;
-    }
-
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('TOTAL:', 130, yPos);
-    doc.text(formatCurrencyForPDF(finalTotal), 185, yPos, { align: 'right' });
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'italic');
-    doc.text('Thank you for your business!', 105, yPos + 20, { align: 'center' });
-    
-    doc.save(`Invoice_${customerName.replace(/\s+/g, '_')}_${invoiceDate || new Date().toISOString().split('T')[0]}.pdf`);
-    showStatus('PDF downloaded!', 'success');
-  } catch (error) {
-    console.error('PDF Error:', error);
-    showStatus('Error generating PDF', 'error');
-  }
-});
 
 // Initialize
 document.getElementById('invoice-date').valueAsDate = new Date();
@@ -1165,6 +1097,9 @@ async function init() {
 
   // Populate width dropdown from width rules
   populateWidthDropdown();
+
+  // Load profit settings
+  loadProfitSettings();
 
   // Load saved invoice data from localStorage
   loadInvoiceFromLocalStorage();
