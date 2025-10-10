@@ -837,7 +837,6 @@ setsInput.addEventListener('input', () => {
 
 // ==================== CALCULATE INVOICE BUTTON ====================
 document.getElementById('calculate-invoice-btn')?.addEventListener('click', () => {
-  const customerName = document.getElementById('customer-name').value.trim();
   const fabricId = fabricTypeSelect.value;
   const width = widthSelect.value;
   const sets = setsInput.value;
@@ -851,11 +850,6 @@ document.getElementById('calculate-invoice-btn')?.addEventListener('click', () =
   state.invoiceItems = [];
 
   // Validate required fields
-  if (!customerName) {
-    showStatus('Please enter customer name', 'error');
-    return;
-  }
-
   if (!fabricId || !width || !sets || !meters || meters.includes('Error')) {
     showStatus('Please fill all fabric fields correctly', 'error');
     return;
@@ -960,8 +954,6 @@ document.getElementById('clear-invoice-btn')?.addEventListener('click', () => {
   if (!confirm('Are you sure you want to clear all invoice data?')) return;
 
   // Clear form fields
-  document.getElementById('customer-name').value = '';
-  document.getElementById('invoice-date').valueAsDate = new Date();
   widthSelect.value = '';
   fabricTypeSelect.value = '';
   fabricTypeSelect.disabled = true;
@@ -997,8 +989,6 @@ document.getElementById('clear-invoice-btn')?.addEventListener('click', () => {
 // ==================== LOCALSTORAGE FUNCTIONS ====================
 function saveInvoiceToLocalStorage() {
   const invoiceData = {
-    customerName: document.getElementById('customer-name').value,
-    invoiceDate: document.getElementById('invoice-date').value,
     width: widthSelect.value,
     fabricId: fabricTypeSelect.value,
     sets: setsInput.value,
@@ -1022,8 +1012,6 @@ function loadInvoiceFromLocalStorage() {
     const invoiceData = JSON.parse(saved);
 
     // Restore form fields
-    if (invoiceData.customerName) document.getElementById('customer-name').value = invoiceData.customerName;
-    if (invoiceData.invoiceDate) document.getElementById('invoice-date').value = invoiceData.invoiceDate;
     if (invoiceData.width) {
       widthSelect.value = invoiceData.width;
       widthSelect.dispatchEvent(new Event('change'));
@@ -1053,7 +1041,6 @@ function loadInvoiceFromLocalStorage() {
 }
 
 // Save to localStorage on input changes
-document.getElementById('customer-name')?.addEventListener('input', saveInvoiceToLocalStorage);
 setsInput?.addEventListener('input', saveInvoiceToLocalStorage);
 
 function renderInvoiceItems(numberOfSets = null) {
@@ -1116,8 +1103,6 @@ window.removeInvoiceItem = (idx) => {
 };
 
 // Initialize
-document.getElementById('invoice-date').valueAsDate = new Date();
-
 async function init() {
   await Promise.all([
     loadFabricTypes(),
@@ -1142,14 +1127,14 @@ function populateWidthDropdown() {
   const widthSelectInvoice = document.getElementById('fabric-width-select');
   if (widthSelectInvoice && state.widthRules.length > 0) {
     widthSelectInvoice.innerHTML = '<option value="">Select width</option>' +
-      state.widthRules.map(r => `<option value="${r.width}">${r.width}</option>`).join('');
+      state.widthRules.map(r => `<option value="${r.width}">Width ${r.width} (${r.sets} Sets → ${r.meters}m, ${r.lace_rolls} lace)</option>`).join('');
   }
 
   // Populate fabrics page width dropdown
   const widthSelectFabric = document.getElementById('fabric-width');
   if (widthSelectFabric && state.widthRules.length > 0) {
     widthSelectFabric.innerHTML = '<option value="">Select width</option>' +
-      state.widthRules.map(r => `<option value="${r.width}">${r.width}</option>`).join('');
+      state.widthRules.map(r => `<option value="${r.width}">Width ${r.width}</option>`).join('');
   }
 }
 
