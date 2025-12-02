@@ -1,12 +1,19 @@
 import mysql from 'mysql2/promise';
 
 export async function createConnection() {
+  // Fail fast if required env vars are missing to avoid using stale hardcoded defaults
+  const required = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+  const missing = required.filter((key) => !process.env[key]);
+  if (missing.length) {
+    throw new Error(`Missing database env vars: ${missing.join(', ')}`);
+  }
+
   try {
     const connection = await mysql.createConnection({
-      host: process.env.DB_HOST || '172.105.49.22',
-      user: process.env.DB_USER || 'dsfsdfds_n8n',
-      password: process.env.DB_PASSWORD || 'Mdlove@123',
-      database: process.env.DB_NAME || 'dsfsdfds_n8n'
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME
     });
 
     return connection;
