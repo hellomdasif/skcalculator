@@ -1,6 +1,4 @@
 import mysql from 'mysql2/promise';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
 import path from 'path';
 import os from 'os';
 import pg from 'pg';
@@ -20,6 +18,11 @@ async function ensureColumn(db, table, column, typeSql) {
 }
 
 async function createSqliteConnection() {
+  throw new Error('SQLite driver is not installed in this build. Use Postgres or MySQL.');
+
+  const sqlite3 = (await import('sqlite3')).default;
+  const { open } = await import('sqlite');
+
   const filename =
     process.env.SQLITE_PATH ||
     ((process.env.NETLIFY || process.env.VERCEL)
