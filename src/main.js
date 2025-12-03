@@ -52,6 +52,72 @@ function writeLocal(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+// Backup helpers
+function buildBackupPayload() {
+  const safeParse = (key) => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      console.warn(`Failed to parse key ${key} for backup`, error);
+      return null;
+    }
+  };
+
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data: {
+      broochCategories: readLocal(STORAGE_KEYS.broochCategories, []),
+      laceCategories: readLocal(STORAGE_KEYS.laceCategories, []),
+      fabricTypes: readLocal(STORAGE_KEYS.fabricTypes, []),
+      extraCharges: readLocal(STORAGE_KEYS.extraCharges, []),
+      widthRules: readLocal(STORAGE_KEYS.widthRules, []),
+      profitSettings: readLocal(PROFIT_STORAGE_KEY, { type: 'none', value: 0 }),
+      invoiceData: safeParse('invoiceData')
+    }
+  };
+}
+
+function applyBackupData(payload) {
+  const data = payload?.data || payload;
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid backup file');
+  }
+
+  if (data.broochCategories) writeLocal(STORAGE_KEYS.broochCategories, data.broochCategories);
+  if (data.laceCategories) writeLocal(STORAGE_KEYS.laceCategories, data.laceCategories);
+  if (data.fabricTypes) writeLocal(STORAGE_KEYS.fabricTypes, data.fabricTypes);
+  if (data.extraCharges) writeLocal(STORAGE_KEYS.extraCharges, data.extraCharges);
+  if (data.widthRules) writeLocal(STORAGE_KEYS.widthRules, data.widthRules);
+  if (data.profitSettings) saveProfitToLocalStorage(data.profitSettings);
+  if (data.invoiceData !== undefined) {
+    localStorage.setItem('invoiceData', JSON.stringify(data.invoiceData));
+  }
+
+  // Refresh state/UI from restored values
+  hydrateStateFromLocalStorage();
+  renderBroochCategories();
+  populateBroochCategorySelects();
+  renderLaceCategories();
+  populateLaceCategorySelects();
+  renderFabricTypes();
+  populateFabricSelect();
+  renderExtraCharges();
+  populateExtraChargeCheckboxes();
+  renderWidthRules();
+  populateWidthDropdown();
+  updateProfitDisplay();
+  loadInvoiceFromLocalStorage();
+}
+
+function setBackupStatus(message, type = 'info') {
+  const el = document.getElementById('backup-status');
+  if (!el) return;
+  el.textContent = message;
+  el.style.color = type === 'error' ? '#c0392b' : '#666';
+}
+
 // Preload state from localStorage so UI works even if API calls fail
 function hydrateStateFromLocalStorage() {
   state.broochCategories = readLocal(STORAGE_KEYS.broochCategories, []);
@@ -1325,6 +1391,51 @@ function loadInvoiceFromLocalStorage() {
   }
 }
 
+function wireBackupControls() {
+  const exportBtn = document.getElementById('export-backup-btn');
+  const importInput = document.getElementById('import-backup-input');
+
+  exportBtn?.addEventListener('click', () => {
+    try {
+      const payload = buildBackupPayload();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `sk-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setBackupStatus('Exported backup file.');
+      showStatus('Backup exported', 'success');
+    } catch (error) {
+      console.error('Export backup failed', error);
+      setBackupStatus('Failed to export backup', 'error');
+      showStatus('Failed to export backup', 'error');
+    }
+  });
+
+  importInput?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const parsed = JSON.parse(evt.target.result);
+        applyBackupData(parsed);
+        setBackupStatus(`Imported backup (${file.name})`);
+        showStatus('Backup imported', 'success');
+      } catch (error) {
+        console.error('Import backup failed', error);
+        setBackupStatus('Invalid backup file', 'error');
+        showStatus('Failed to import backup', 'error');
+      } finally {
+        importInput.value = '';
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
 // Save to localStorage on input changes
 setsInput?.addEventListener('input', saveInvoiceToLocalStorage);
 
@@ -1389,6 +1500,7 @@ window.removeInvoiceItem = (idx) => {
 
 // Initialize
 async function init() {
+  wireBackupControls();
   // Hydrate UI from localStorage immediately so dropdowns work offline
   hydrateStateFromLocalStorage();
   renderBroochCategories();

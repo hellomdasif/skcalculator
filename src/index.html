@@ -23,6 +23,7 @@
       <button class="nav-btn" data-page="extras">Extras</button>
       <button class="nav-btn" data-page="width-rules">Rules</button>
       <button class="nav-btn" data-page="profit-settings">Profit</button>
+      <button class="nav-btn" data-page="backup">Backup</button>
     </nav>
 
     <!-- Main Container -->
@@ -319,6 +320,23 @@
           <div class="card" style="margin-top: 20px; background-color: #f8f9fa; padding: 15px;">
             <h3 style="margin-top: 0; font-size: 16px;">Current Settings</h3>
             <p id="profit-display" style="margin: 0; font-size: 14px; color: #666;">No profit configured</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- Backup & Restore Page -->
+      <div class="page" id="backup-page">
+        <section class="card">
+          <h2>Backup & Restore</h2>
+          <p class="help-text">Export or import all locally stored data (fabrics, brooches, laces, extras, width rules, profit settings, and saved invoice).</p>
+
+          <div class="form-row" style="gap: 12px; align-items: center; flex-wrap: wrap;">
+            <button id="export-backup-btn" class="btn btn-primary" style="min-width: 180px;">Export Data</button>
+            <label class="btn" style="border: 1px solid #ccc; min-width: 180px; cursor: pointer; margin: 0;">
+              Import Data
+              <input type="file" id="import-backup-input" accept="application/json" style="display: none;">
+            </label>
+            <span id="backup-status" style="color: #666; font-size: 14px;"></span>
           </div>
         </section>
       </div>
