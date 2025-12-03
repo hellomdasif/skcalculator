@@ -17,15 +17,28 @@ export const handler = async (event) => {
   try {
     conn = await createConnection();
 
-    // Ensure profit_settings table exists
-    await conn.execute(`
+    const driver = (process.env.DB_DRIVER || 'mysql').toLowerCase();
+    const profitTableSql =
+      driver === 'postgres'
+        ? `
+      CREATE TABLE IF NOT EXISTS profit_settings (
+        id SERIAL PRIMARY KEY,
+        profit_type VARCHAR(20) NOT NULL DEFAULT 'none',
+        profit_value NUMERIC(10, 2) NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      )
+    `
+        : `
       CREATE TABLE IF NOT EXISTS profit_settings (
         id INT AUTO_INCREMENT PRIMARY KEY,
         profit_type VARCHAR(20) NOT NULL DEFAULT 'none',
         profit_value DECIMAL(10, 2) NOT NULL DEFAULT 0,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
-    `);
+    `;
+
+    // Ensure profit_settings table exists (supports MySQL & Postgres)
+    await conn.execute(profitTableSql);
 
     // GET - Fetch current profit settings
     if (event.httpMethod === 'GET') {
@@ -75,10 +88,12 @@ export const handler = async (event) => {
         );
       } else {
         // Update existing settings
-        await conn.execute(
-          'UPDATE profit_settings SET profit_type = ?, profit_value = ? WHERE id = ?',
-          [profit_type, profit_value, existing[0].id]
-        );
+        const updateQuery =
+          driver === 'postgres'
+            ? 'UPDATE profit_settings SET profit_type = ?, profit_value = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+            : 'UPDATE profit_settings SET profit_type = ?, profit_value = ? WHERE id = ?';
+
+        await conn.execute(updateQuery, [profit_type, profit_value, existing[0].id]);
       }
 
       return {
