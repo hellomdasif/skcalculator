@@ -52,6 +52,20 @@ function writeLocal(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+// Preload state from localStorage so UI works even if API calls fail
+function hydrateStateFromLocalStorage() {
+  state.broochCategories = readLocal(STORAGE_KEYS.broochCategories, []);
+  state.laceCategories = readLocal(STORAGE_KEYS.laceCategories, []);
+  state.fabricTypes = readLocal(STORAGE_KEYS.fabricTypes, []);
+  state.extraCharges = readLocal(STORAGE_KEYS.extraCharges, []);
+  state.widthRules = readLocal(STORAGE_KEYS.widthRules, []);
+
+  const storedProfit = readLocal(PROFIT_STORAGE_KEY, null);
+  if (storedProfit) {
+    state.profitSettings = storedProfit;
+  }
+}
+
 function nextId(list) {
   const max = list.reduce((m, item) => Math.max(m, item.id || 0), 0);
   return max + 1;
@@ -234,6 +248,46 @@ function handleProfitEndpoint(method, body) {
   return jsonResponse({ success: false });
 }
 
+// Local-friendly API helper: routes to local handlers when LOCAL_ONLY is true, otherwise calls real API
+async function callLocalEndpoint(endpoint, method, body, searchParams) {
+  if (endpoint === 'brooch-categories') return handleBroochEndpoint(method, body);
+  if (endpoint === 'lace-categories') return handleLaceEndpoint(method, body);
+  if (endpoint === 'fabric-types') return handleFabricEndpoint(method, body, searchParams);
+  if (endpoint === 'extra-charges') return handleExtraEndpoint(method, body);
+  if (endpoint === 'width-rules') return handleWidthEndpoint(method, body);
+  if (endpoint === 'profit-settings') return handleProfitEndpoint(method, body);
+  return jsonResponse({ success: false });
+}
+
+async function apiRequest(endpoint, { method = 'GET', body = null, searchParams = null } = {}) {
+  if (LOCAL_ONLY) {
+    const paramsObj =
+      searchParams instanceof URLSearchParams
+        ? searchParams
+        : searchParams
+        ? new URLSearchParams(searchParams)
+        : null;
+    const response = await callLocalEndpoint(endpoint, method, body, paramsObj);
+    return response.json();
+  }
+
+  let url = `${API_BASE}/${endpoint}`;
+  if (searchParams) {
+    const qs =
+      typeof searchParams === 'string'
+        ? searchParams
+        : new URLSearchParams(searchParams).toString();
+    if (qs) url += `?${qs}`;
+  }
+
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: method === 'GET' ? null : JSON.stringify(body)
+  });
+  return res.json();
+}
+
 // Intercept fetch to work fully offline/local
 if (LOCAL_ONLY && typeof window !== 'undefined') {
   const realFetch = window.fetch.bind(window);
@@ -297,8 +351,7 @@ function switchPage(pageName) {
 // ==================== BROOCH CATEGORIES ====================
 async function loadBroochCategories() {
   try {
-    const res = await fetch(`${API_BASE}/brooch-categories`);
-    const data = await res.json();
+    const data = await apiRequest('brooch-categories');
     if (data.success) {
       state.broochCategories = data.data;
       renderBroochCategories();
@@ -379,12 +432,8 @@ document.getElementById('brooch-category-form')?.addEventListener('submit', asyn
     : { name, price };
 
   try {
-    const res = await fetch(`${API_BASE}/brooch-categories`, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if ((await res.json()).success) {
+    const result = await apiRequest('brooch-categories', { method, body });
+    if (result.success) {
       showStatus(isEditMode ? 'Brooch category updated!' : 'Brooch category added!', 'success');
       document.getElementById('brooch-category-form').reset();
       const submitBtn = document.querySelector('#brooch-category-form button[type="submit"]');
@@ -400,12 +449,8 @@ document.getElementById('brooch-category-form')?.addEventListener('submit', asyn
 window.deleteBroochCategory = async (id) => {
   if (!confirm('Delete this category?')) return;
   try {
-    const res = await fetch(`${API_BASE}/brooch-categories`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    if ((await res.json()).success) {
+    const result = await apiRequest('brooch-categories', { method: 'DELETE', body: { id } });
+    if (result.success) {
       showStatus('Category deleted', 'success');
       await loadBroochCategories();
     }
@@ -417,8 +462,7 @@ window.deleteBroochCategory = async (id) => {
 // ==================== LACE CATEGORIES ====================
 async function loadLaceCategories() {
   try {
-    const res = await fetch(`${API_BASE}/lace-categories`);
-    const data = await res.json();
+    const data = await apiRequest('lace-categories');
     if (data.success) {
       state.laceCategories = data.data;
       renderLaceCategories();
@@ -499,12 +543,8 @@ document.getElementById('lace-category-form')?.addEventListener('submit', async 
     : { name, price };
 
   try {
-    const res = await fetch(`${API_BASE}/lace-categories`, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if ((await res.json()).success) {
+    const result = await apiRequest('lace-categories', { method, body });
+    if (result.success) {
       showStatus(isEditMode ? 'Lace category updated!' : 'Lace category added!', 'success');
       document.getElementById('lace-category-form').reset();
       const submitBtn = document.querySelector('#lace-category-form button[type="submit"]');
@@ -520,12 +560,8 @@ document.getElementById('lace-category-form')?.addEventListener('submit', async 
 window.deleteLaceCategory = async (id) => {
   if (!confirm('Delete this category?')) return;
   try {
-    const res = await fetch(`${API_BASE}/lace-categories`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    if ((await res.json()).success) {
+    const result = await apiRequest('lace-categories', { method: 'DELETE', body: { id } });
+    if (result.success) {
       showStatus('Category deleted', 'success');
       await loadLaceCategories();
     }
@@ -537,12 +573,9 @@ window.deleteLaceCategory = async (id) => {
 // ==================== FABRIC TYPES ====================
 async function loadFabricTypes(width = null) {
   try {
-    let url = `${API_BASE}/fabric-types`;
-    if (width) {
-      url += `?width=${width}`;
-    }
-    const res = await fetch(url);
-    const data = await res.json();
+    const data = await apiRequest('fabric-types', {
+      searchParams: width ? { width } : null
+    });
     if (data.success) {
       state.fabricTypes = data.data;
       renderFabricTypes();
@@ -628,13 +661,8 @@ document.getElementById('fabric-form').addEventListener('submit', async (e) => {
     : { name, price_per_meter: price, width };
 
   try {
-    const res = await fetch(`${API_BASE}/fabric-types`, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (data.success) {
+    const result = await apiRequest('fabric-types', { method, body });
+    if (result.success) {
       showStatus(isEditMode ? 'Fabric type updated!' : 'Fabric type added!', 'success');
       document.getElementById('fabric-form').reset();
       const submitBtn = document.querySelector('#fabric-form button[type="submit"]');
@@ -650,12 +678,8 @@ document.getElementById('fabric-form').addEventListener('submit', async (e) => {
 window.deleteFabricType = async (id) => {
   if (!confirm('Delete this fabric type?')) return;
   try {
-    const res = await fetch(`${API_BASE}/fabric-types`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    if ((await res.json()).success) {
+    const result = await apiRequest('fabric-types', { method: 'DELETE', body: { id } });
+    if (result.success) {
       showStatus('Fabric type deleted', 'success');
       await loadFabricTypes();
     }
@@ -668,8 +692,7 @@ window.deleteFabricType = async (id) => {
 // ==================== EXTRA CHARGES ====================
 async function loadExtraCharges() {
   try {
-    const res = await fetch(`${API_BASE}/extra-charges`);
-    const data = await res.json();
+    const data = await apiRequest('extra-charges');
     if (data.success) {
       state.extraCharges = data.data;
       renderExtraCharges();
@@ -768,12 +791,8 @@ document.getElementById('extra-charge-form')?.addEventListener('submit', async (
     : { name, price };
 
   try {
-    const res = await fetch(`${API_BASE}/extra-charges`, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if ((await res.json()).success) {
+    const result = await apiRequest('extra-charges', { method, body });
+    if (result.success) {
       showStatus(isEditMode ? 'Extra charge updated!' : 'Extra charge added!', 'success');
       document.getElementById('extra-charge-form').reset();
       const submitBtn = document.querySelector('#extra-charge-form button[type="submit"]');
@@ -789,12 +808,8 @@ document.getElementById('extra-charge-form')?.addEventListener('submit', async (
 window.deleteExtraCharge = async (id) => {
   if (!confirm('Delete this extra charge?')) return;
   try {
-    const res = await fetch(`${API_BASE}/extra-charges`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    if ((await res.json()).success) {
+    const result = await apiRequest('extra-charges', { method: 'DELETE', body: { id } });
+    if (result.success) {
       showStatus('Extra charge deleted', 'success');
       await loadExtraCharges();
     }
@@ -839,8 +854,7 @@ async function loadProfitSettings() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/profit-settings`);
-    const data = await res.json();
+    const data = await apiRequest('profit-settings');
     if (data.success) {
       state.profitSettings = {
         type: data.data.profit_type,
@@ -872,15 +886,13 @@ async function saveProfitSettings() {
   let synced = false;
 
   try {
-    const res = await fetch(`${API_BASE}/profit-settings`, {
+    const data = await apiRequest('profit-settings', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: {
         profit_type: state.profitSettings.type,
         profit_value: state.profitSettings.value
-      })
+      }
     });
-    const data = await res.json();
     if (data.success) {
       updateProfitDisplay();
       synced = true;
@@ -927,11 +939,11 @@ document.getElementById('profit-settings-form')?.addEventListener('submit', asyn
 // ==================== WIDTH RULES ====================
 async function loadWidthRules() {
   try {
-    const res = await fetch(`${API_BASE}/width-rules`);
-    const data = await res.json();
+    const data = await apiRequest('width-rules');
     if (data.success) {
       state.widthRules = data.data;
       renderWidthRules();
+      populateWidthDropdown();
     }
   } catch (error) {
     console.error('Error loading width rules:', error);
@@ -999,12 +1011,8 @@ document.getElementById('width-rule-form')?.addEventListener('submit', async (e)
     : { width, sets, meters, lace_rolls };
 
   try {
-    const res = await fetch(`${API_BASE}/width-rules`, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if ((await res.json()).success) {
+    const result = await apiRequest('width-rules', { method, body });
+    if (result.success) {
       showStatus(isEditMode ? 'Width rule updated!' : 'Width rule added!', 'success');
       document.getElementById('width-rule-form').reset();
       const submitBtn = document.querySelector('#width-rule-form button[type="submit"]');
@@ -1021,12 +1029,8 @@ document.getElementById('width-rule-form')?.addEventListener('submit', async (e)
 window.deleteWidthRule = async (id) => {
   if (!confirm('Delete this width rule?')) return;
   try {
-    const res = await fetch(`${API_BASE}/width-rules`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
-    if ((await res.json()).success) {
+    const result = await apiRequest('width-rules', { method: 'DELETE', body: { id } });
+    if (result.success) {
       showStatus('Width rule deleted', 'success');
       await loadWidthRules();
     }
@@ -1055,8 +1059,7 @@ widthSelect.addEventListener('change', async () => {
 
   // Load fabric types for selected width
   try {
-    const res = await fetch(`${API_BASE}/fabric-types?width=${width}`);
-    const data = await res.json();
+    const data = await apiRequest('fabric-types', { searchParams: { width } });
     if (data.success) {
       const fabrics = data.data;
       if (fabrics.length === 0) {
@@ -1386,6 +1389,21 @@ window.removeInvoiceItem = (idx) => {
 
 // Initialize
 async function init() {
+  // Hydrate UI from localStorage immediately so dropdowns work offline
+  hydrateStateFromLocalStorage();
+  renderBroochCategories();
+  populateBroochCategorySelects();
+  renderLaceCategories();
+  populateLaceCategorySelects();
+  renderFabricTypes();
+  populateFabricSelect();
+  renderExtraCharges();
+  populateExtraChargeCheckboxes();
+  renderWidthRules();
+  populateWidthDropdown();
+  updateProfitDisplay();
+  loadInvoiceFromLocalStorage();
+
   await Promise.all([
     loadFabricTypes(),
     loadBroochCategories(),
