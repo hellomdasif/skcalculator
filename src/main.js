@@ -25,6 +25,243 @@ const state = {
   }
 };
 
+// Local persistence keys
+const PROFIT_STORAGE_KEY = 'profitSettings';
+const LOCAL_ONLY = true;
+const STORAGE_KEYS = {
+  broochCategories: 'broochCategories',
+  laceCategories: 'laceCategories',
+  fabricTypes: 'fabricTypes',
+  extraCharges: 'extraCharges',
+  widthRules: 'widthRules'
+};
+
+// Local storage helpers
+function readLocal(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn(`Failed to parse localStorage key ${key}:`, error);
+    return fallback;
+  }
+}
+
+function writeLocal(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function nextId(list) {
+  const max = list.reduce((m, item) => Math.max(m, item.id || 0), 0);
+  return max + 1;
+}
+
+function jsonResponse(payload) {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => payload
+  };
+}
+
+function handleBroochEndpoint(method, body) {
+  const store = readLocal(STORAGE_KEYS.broochCategories, []);
+  if (method === 'GET') {
+    return jsonResponse({ success: true, data: store });
+  }
+  if (method === 'POST') {
+    const newItem = { id: nextId(store), name: body.name, price: body.price };
+    const updated = [...store, newItem];
+    writeLocal(STORAGE_KEYS.broochCategories, updated);
+    return jsonResponse({ success: true, data: newItem });
+  }
+  if (method === 'PUT') {
+    const updated = store.map((item) =>
+      item.id === body.id ? { ...item, name: body.name, price: body.price } : item
+    );
+    writeLocal(STORAGE_KEYS.broochCategories, updated);
+    return jsonResponse({ success: true });
+  }
+  if (method === 'DELETE') {
+    const updated = store.filter((item) => item.id !== body.id);
+    writeLocal(STORAGE_KEYS.broochCategories, updated);
+    return jsonResponse({ success: true });
+  }
+  return jsonResponse({ success: false });
+}
+
+function handleLaceEndpoint(method, body) {
+  const store = readLocal(STORAGE_KEYS.laceCategories, []);
+  if (method === 'GET') {
+    return jsonResponse({ success: true, data: store });
+  }
+  if (method === 'POST') {
+    const newItem = { id: nextId(store), name: body.name, price: body.price };
+    const updated = [...store, newItem];
+    writeLocal(STORAGE_KEYS.laceCategories, updated);
+    return jsonResponse({ success: true, data: newItem });
+  }
+  if (method === 'PUT') {
+    const updated = store.map((item) =>
+      item.id === body.id ? { ...item, name: body.name, price: body.price } : item
+    );
+    writeLocal(STORAGE_KEYS.laceCategories, updated);
+    return jsonResponse({ success: true });
+  }
+  if (method === 'DELETE') {
+    const updated = store.filter((item) => item.id !== body.id);
+    writeLocal(STORAGE_KEYS.laceCategories, updated);
+    return jsonResponse({ success: true });
+  }
+  return jsonResponse({ success: false });
+}
+
+function handleFabricEndpoint(method, body, searchParams) {
+  const store = readLocal(STORAGE_KEYS.fabricTypes, []);
+  if (method === 'GET') {
+    const widthFilter = searchParams?.get('width');
+    const data = widthFilter ? store.filter((item) => String(item.width) === String(widthFilter)) : store;
+    return jsonResponse({ success: true, data });
+  }
+  if (method === 'POST') {
+    const newItem = {
+      id: nextId(store),
+      name: body.name,
+      price_per_meter: body.price_per_meter,
+      width: body.width
+    };
+    const updated = [...store, newItem];
+    writeLocal(STORAGE_KEYS.fabricTypes, updated);
+    return jsonResponse({ success: true, data: newItem });
+  }
+  if (method === 'PUT') {
+    const updated = store.map((item) =>
+      item.id === body.id
+        ? { ...item, name: body.name, price_per_meter: body.price_per_meter, width: body.width }
+        : item
+    );
+    writeLocal(STORAGE_KEYS.fabricTypes, updated);
+    return jsonResponse({ success: true });
+  }
+  if (method === 'DELETE') {
+    const updated = store.filter((item) => item.id !== body.id);
+    writeLocal(STORAGE_KEYS.fabricTypes, updated);
+    return jsonResponse({ success: true });
+  }
+  return jsonResponse({ success: false });
+}
+
+function handleExtraEndpoint(method, body) {
+  const store = readLocal(STORAGE_KEYS.extraCharges, []);
+  if (method === 'GET') {
+    return jsonResponse({ success: true, data: store });
+  }
+  if (method === 'POST') {
+    const newItem = { id: nextId(store), name: body.name, price: body.price };
+    const updated = [...store, newItem];
+    writeLocal(STORAGE_KEYS.extraCharges, updated);
+    return jsonResponse({ success: true, data: newItem });
+  }
+  if (method === 'PUT') {
+    const updated = store.map((item) =>
+      item.id === body.id ? { ...item, name: body.name, price: body.price } : item
+    );
+    writeLocal(STORAGE_KEYS.extraCharges, updated);
+    return jsonResponse({ success: true });
+  }
+  if (method === 'DELETE') {
+    const updated = store.filter((item) => item.id !== body.id);
+    writeLocal(STORAGE_KEYS.extraCharges, updated);
+    return jsonResponse({ success: true });
+  }
+  return jsonResponse({ success: false });
+}
+
+function handleWidthEndpoint(method, body) {
+  const store = readLocal(STORAGE_KEYS.widthRules, []);
+  if (method === 'GET') {
+    return jsonResponse({ success: true, data: store });
+  }
+  if (method === 'POST') {
+    const newItem = {
+      id: nextId(store),
+      width: body.width,
+      sets: body.sets,
+      meters: body.meters,
+      lace_rolls: body.lace_rolls
+    };
+    const updated = [...store, newItem];
+    writeLocal(STORAGE_KEYS.widthRules, updated);
+    return jsonResponse({ success: true, data: newItem });
+  }
+  if (method === 'PUT') {
+    const updated = store.map((item) =>
+      item.id === body.id
+        ? { ...item, width: body.width, sets: body.sets, meters: body.meters, lace_rolls: body.lace_rolls }
+        : item
+    );
+    writeLocal(STORAGE_KEYS.widthRules, updated);
+    return jsonResponse({ success: true });
+  }
+  if (method === 'DELETE') {
+    const updated = store.filter((item) => item.id !== body.id);
+    writeLocal(STORAGE_KEYS.widthRules, updated);
+    return jsonResponse({ success: true });
+  }
+  return jsonResponse({ success: false });
+}
+
+function handleProfitEndpoint(method, body) {
+  const stored = readLocal(PROFIT_STORAGE_KEY, null);
+  if (method === 'GET') {
+    if (!stored) {
+      return jsonResponse({ success: true, data: { profit_type: 'none', profit_value: 0 } });
+    }
+    return jsonResponse({
+      success: true,
+      data: { profit_type: stored.type || 'none', profit_value: Number(stored.value) || 0 }
+    });
+  }
+  if (method === 'POST') {
+    const settings = {
+      type: body.profit_type || 'none',
+      value: Number(body.profit_value) || 0
+    };
+    writeLocal(PROFIT_STORAGE_KEY, settings);
+    return jsonResponse({ success: true, message: 'Saved locally' });
+  }
+  return jsonResponse({ success: false });
+}
+
+// Intercept fetch to work fully offline/local
+if (LOCAL_ONLY && typeof window !== 'undefined') {
+  const realFetch = window.fetch.bind(window);
+  window.fetch = async (url, options = {}) => {
+    const method = (options.method || 'GET').toUpperCase();
+    let body = null;
+    try {
+      body = options.body ? JSON.parse(options.body) : null;
+    } catch (error) {
+      body = null;
+    }
+
+    const parsed = new URL(url, window.location.origin);
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    const endpoint = segments[segments.length - 1];
+
+    if (endpoint === 'brooch-categories') return handleBroochEndpoint(method, body);
+    if (endpoint === 'lace-categories') return handleLaceEndpoint(method, body);
+    if (endpoint === 'fabric-types') return handleFabricEndpoint(method, body, parsed.searchParams);
+    if (endpoint === 'extra-charges') return handleExtraEndpoint(method, body);
+    if (endpoint === 'width-rules') return handleWidthEndpoint(method, body);
+    if (endpoint === 'profit-settings') return handleProfitEndpoint(method, body);
+
+    // Fallback to real fetch if it's some other resource
+    return realFetch(url, options);
+  };
+}
+
 // Utility Functions
 function showStatus(message, type = 'success') {
   const statusEl = document.getElementById('status-message');
@@ -567,7 +804,40 @@ window.deleteExtraCharge = async (id) => {
 };
 
 // ==================== PROFIT SETTINGS ====================
+function loadProfitFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(PROFIT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      type: parsed.type || 'none',
+      value: Number(parsed.value) || 0
+    };
+  } catch (error) {
+    console.warn('Failed to read profit settings from localStorage:', error);
+    return null;
+  }
+}
+
+function saveProfitToLocalStorage(settings) {
+  localStorage.setItem(PROFIT_STORAGE_KEY, JSON.stringify(settings));
+}
+
 async function loadProfitSettings() {
+  // Prefer local settings to remove dependency on database availability
+  const localSettings = loadProfitFromLocalStorage();
+  if (localSettings) {
+    state.profitSettings = localSettings;
+    updateProfitDisplay();
+    const profitTypeEl = document.getElementById('profit-type');
+    const profitValueEl = document.getElementById('profit-value');
+    if (profitTypeEl && profitValueEl) {
+      profitTypeEl.value = state.profitSettings.type;
+      profitValueEl.value = state.profitSettings.value;
+    }
+  }
+
   try {
     const res = await fetch(`${API_BASE}/profit-settings`);
     const data = await res.json();
@@ -576,6 +846,7 @@ async function loadProfitSettings() {
         type: data.data.profit_type,
         value: data.data.profit_value
       };
+      saveProfitToLocalStorage(state.profitSettings);
       updateProfitDisplay();
       // Populate form if on profit settings page
       const profitTypeEl = document.getElementById('profit-type');
@@ -587,12 +858,19 @@ async function loadProfitSettings() {
     }
   } catch (error) {
     console.error('Error loading profit settings:', error);
-    // Fallback to default
-    state.profitSettings = { type: 'none', value: 0 };
+    // Fallback to local or default
+    if (!localSettings) {
+      state.profitSettings = { type: 'none', value: 0 };
+      updateProfitDisplay();
+    }
   }
 }
 
 async function saveProfitSettings() {
+  // Always persist locally first
+  saveProfitToLocalStorage(state.profitSettings);
+  let synced = false;
+
   try {
     const res = await fetch(`${API_BASE}/profit-settings`, {
       method: 'POST',
@@ -605,13 +883,13 @@ async function saveProfitSettings() {
     const data = await res.json();
     if (data.success) {
       updateProfitDisplay();
-      return true;
+      synced = true;
     }
-    return false;
   } catch (error) {
     console.error('Error saving profit settings:', error);
-    return false;
   }
+
+  return { success: true, synced };
 }
 
 function updateProfitDisplay() {
@@ -633,10 +911,14 @@ document.getElementById('profit-settings-form')?.addEventListener('submit', asyn
   const value = parseFloat(document.getElementById('profit-value').value) || 0;
 
   state.profitSettings = { type, value };
-  const success = await saveProfitSettings();
+  const result = await saveProfitSettings();
 
-  if (success) {
-    showStatus('Profit settings saved successfully!', 'success');
+  if (result.success) {
+    if (result.synced) {
+      showStatus('Profit settings saved successfully!', 'success');
+    } else {
+      showStatus('Saved locally. Server sync unavailable.', 'success');
+    }
   } else {
     showStatus('Error saving profit settings', 'error');
   }
